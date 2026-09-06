@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
-import { newRun, getChess, chooseMove, type Run, SAVE_KEY } from '../src/game';
+import { newRun, getChess, chooseMove, type Run, SAVE_KEY, ENCOUNTERS, shopStock } from '../src/game';
 
 test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save and help',async({page})=>{
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
   await page.setViewportSize({width:1440,height:1000});await page.goto('/');
   await expect(page.getByRole('dialog',{name:'Welcome to Rooklike'})).toBeVisible();await page.getByRole('button',{name:'Begin your journey'}).click();
   await expect(page.locator('.square')).toHaveCount(64);
+  expect(await page.locator('.board-frame').evaluate(el=>getComputedStyle(el).transform)).toBe('none');
+  expect(await page.locator('.board-scene').evaluate(el=>getComputedStyle(el).perspective)).toBe('none');
   await page.screenshot({path:'artifacts/desktop.png',fullPage:true});
   await page.locator('[data-square="b1"]').click();await expect(page.locator('[data-square="c3"]')).toHaveClass(/legal/);
   await page.locator('[data-square="c3"]').click();
@@ -33,7 +35,7 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
   await page.screenshot({path:'artifacts/rewards.png',fullPage:true});
   await page.getByRole('button',{name:/Continue to/}).click();await expect(page.locator('.app')).toHaveClass(/theme-marsh/);
   await expect(page.getByRole('heading',{name:'A Knight in the Mire'})).toBeVisible();
-  const state:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));expect(state.army).toHaveLength(4);expect(state.coins).toBe(15);
+  const state:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));expect(state.army).toHaveLength(4);expect(state.coins).toBe(27);
 });
 
 test('promotion choice can cause a material draw; final board remains ended',async({page})=>{
@@ -53,25 +55,28 @@ test('mobile: board fits and controls stay usable',async({page})=>{
 });
 
 test('complete act through the UI: fight, recruit, advance, defeat the boss',async({page})=>{
-  test.setTimeout(180000);
+  test.setTimeout(900000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(({key,run})=>localStorage.setItem(key,JSON.stringify(run)),{key:SAVE_KEY,run:newRun('wanderer',42)});
   await page.goto('/');await page.getByRole('button',{name:'Begin your journey'}).click();
-  for(let stage=0;stage<5;stage++){
+  for(let stage=0;stage<ENCOUNTERS.length;stage++){
     for(let turns=0;turns<100;turns++){
       const run:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));
       if(run.phase!=='battle')break;
       const chess=getChess(run);expect(chess.turn()).toBe('w');
-      const move=chooseMove(chess,'tactician',run.elite)!;expect(move).toBeTruthy();
+      const move=chooseMove(chess,'tactician',run.elite,run.stage)!;expect(move).toBeTruthy();
       await page.locator(`[data-square="${move.from}"]`).click();await page.locator(`[data-square="${move.to}"]`).click();
       if(move.promotion)await page.getByRole('button',{name:({q:'Queen',r:'Rook',b:'Bishop',n:'Knight'} as Record<string,string>)[move.promotion],exact:true}).click();
       await page.waitForFunction(()=>{const r=JSON.parse(localStorage.getItem('rooklike-run-v1')!);return r.phase!=='battle'||r.moves.length%2===0;});
     }
-    if(stage<4){
+    if(stage<ENCOUNTERS.length-1){
       await expect(page.getByRole('dialog',{name:'Encounter won'})).toBeVisible();
       const recruit=page.getByRole('button',{name:/A willing/});
       if(await recruit.isEnabled())await recruit.click();else await page.getByRole('button',{name:/Second Thought/}).click();
-      const queen=page.getByRole('button',{name:'Recruit Queen for 65 crowns'}),rook=page.getByRole('button',{name:'Recruit Rook for 35 crowns'});
-      if(await queen.isEnabled())await queen.click();else if(await rook.isEnabled())await rook.click();
+      if(stage%4===3){const veteran=page.getByRole('button',{name:/A veteran rook/});if(await veteran.isEnabled())await veteran.click();else await page.getByRole('button',{name:/The war chest/}).click();}
+      const state:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));
+      const offer=[...shopStock(state)].reverse().find(item=>item.cost<=state.coins&&item.type!=='p');
+      if(offer&&state.army.length<12)await page.getByRole('button',{name:`Recruit ${({q:'Queen',r:'Rook',b:'Bishop',n:'Knight',p:'Pawn',k:'King'} as const)[offer.type]} for ${offer.cost} crowns`}).click();
       await page.getByRole('button',{name:/Continue to/}).click();
     }
   }

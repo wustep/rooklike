@@ -8,7 +8,7 @@ function position(fen:string, elite:Square='a8'):Run {
 }
 describe('Chess legality and campaign integration',()=>{
   it('deploys every encounter legally, including a full company',()=>{
-    let run=newRun();for(let i=0;i<5;i++){const {fen,positions}=makeBattle(run.army,i);const chess=new Chess(fen);expect(chess.isCheck()).toBe(false);expect(chess.moves().length).toBeGreaterThan(0);expect(Object.keys(positions)).toHaveLength(run.army.length);run=recruit(run,'q');}
+    let run=newRun();for(let i=0;i<ENCOUNTERS.length;i++){const {fen,positions}=makeBattle(run.army,i);const chess=new Chess(fen);expect(chess.isCheck()).toBe(false);expect(chess.moves().length).toBeGreaterThan(0);expect(Object.keys(positions)).toHaveLength(run.army.length);run=recruit(run,'q');}
     expect(START_ARMY.length).toBe(7);
   });
   it('forbids exposing the king with a pinned rook',()=>{
@@ -30,7 +30,7 @@ describe('Chess legality and campaign integration',()=>{
     let run=position('7k/P7/8/8/8/8/8/4K3 w - - 0 1','h8');expect(getChess(run).moves({square:'a7',verbose:true}).filter(m=>m.to==='a8')).toHaveLength(4);run=playMove(run,{from:'a7',to:'a8',promotion:'n'});expect(run.army.find(u=>u.id==='a7')?.type).toBe('n');
   });
   it('ends the encounter by captain capture and pays a flawless bonus exactly once',()=>{
-    let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','a3');run=playMove(run,'Rxa3');expect(run.phase).toBe('reward');expect(run.earned).toBe(35);expect(run.coins).toBe(50);expect(playMove(run,'Kh7')).toBe(run);
+    let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','a3');run=playMove(run,'Rxa3');expect(run.phase).toBe('reward');expect(run.earned).toBe(47);expect(run.coins).toBe(62);expect(playMove(run,'Kh7')).toBe(run);
   });
   it('tracks a moving captain and applies the rider theft only on its capture',()=>{
     let run=position('7k/8/8/4n3/8/3P4/8/R3K3 b - - 0 1','e5');run.stage=1;run=playMove(run,'Nxd3+');expect(run.elite).toBe('d3');expect(run.coins).toBe(10);expect(run.losses).toBe(1);
@@ -45,7 +45,7 @@ describe('Chess legality and campaign integration',()=>{
     let run=position('7k/8/5K2/8/6Q1/8/8/8 w - - 0 1','h8');run=playMove(run,'Qg6');expect(run.phase).toBe('draw');
   });
   it('persists recruited units, losses, relics, and income across stages',()=>{
-    let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','a3');run=takeRelic(run,'purse');run=playMove(run,'Rxa3');expect(run.earned).toBe(45);run=recruit(run,'n',25);const count=run.army.length;run=nextBattle(run);expect(run.army).toHaveLength(count);expect(run.relics).toContain('purse');expect(run.moves).toEqual([]);expect(run.elite).toBe(ENCOUNTERS[1].target);
+    let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','a3');run=takeRelic(run,'purse');run=playMove(run,'Rxa3');expect(run.earned).toBe(57);run=recruit(run,'n',25);const count=run.army.length;run=nextBattle({...run,rewardClaimed:true});expect(run.army).toHaveLength(count);expect(run.relics).toContain('purse');expect(run.moves).toEqual([]);expect(run.elite).toBe(ENCOUNTERS[1].target);
   });
   it('does not permit overspending or overfilling the company',()=>{
     let run=newRun();expect(recruit(run,'q',65)).toBe(run);for(let i=0;i<10;i++)run=recruit(run,'n');expect(run.army).toHaveLength(12);
