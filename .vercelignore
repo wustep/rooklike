@@ -1,0 +1,11 @@
+.git
+.agents
+.codex
+node_modules
+.playwright-browsers
+artifacts
+test-results
+playwright-report
+e2e
+tests
+*.tsbuildinfo
