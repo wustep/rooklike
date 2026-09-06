@@ -24,8 +24,8 @@ export function makeBattle(army: Unit[], stage: number) {
   const slots: Record<PieceSymbol,string[]> = { k:['e1'], q:['d1','d2','c2'], r:['a1','h1','a2','h2'], b:['c1','f1','c2','f2'], n:['b1','g1','b2','g2'], p:['d2','e2','f2','c2','g2','b2','a2','h2'] };
   const positions: Record<string,string> = {};
   const fallback = ['a2','b2','c2','d2','e2','f2','g2','h2','a1','b1','c1','d1','f1','g1','h1'];
-  for (const unit of [...army].sort((a,b)=>Number(a.type==='p')-Number(b.type==='p'))) {
-    const sq = [...slots[unit.type],...fallback].find(s=>!pieces[s]);
+  for (const unit of [...army].sort((a,b)=>Number(b.type==='p')-Number(a.type==='p'))) {
+    const sq = (unit.type==='p'?slots.p:[...slots[unit.type],...fallback]).find(s=>!pieces[s]);
     if (!sq) throw new Error('Army exceeds deployment capacity');
     positions[sq]=unit.id; pieces[sq]={type:unit.type,color:'w'};
   }
@@ -67,7 +67,7 @@ export function playMove(run: Run, input: string | {from:Square;to:Square;promot
   return next;
 }
 export function nextBattle(run: Run):Run {const stage=run.stage+1;const {fen,positions}=makeBattle(run.army,stage);return {...run,stage,positions,initialFen:fen,moves:[],elite:ENCOUNTERS[stage].target,phase:'battle',battleLosses:0,rewardClaimed:false,log:[`Entered ${ENCOUNTERS[stage].name}.`],earned:0};}
-export function recruit(run:Run,type:PieceSymbol,cost=0):Run {if(run.coins<cost||run.army.length>=12)return run;return {...run,coins:run.coins-cost,army:[...run.army,{id:`recruit-${run.seed}-${run.stage}-${run.army.length}-${run.coins}`,type}]};}
+export function recruit(run:Run,type:PieceSymbol,cost=0):Run {if(run.coins<cost||run.army.length>=12||(type==='p'&&run.army.filter(u=>u.type==='p').length>=8))return run;return {...run,coins:run.coins-cost,army:[...run.army,{id:`recruit-${run.seed}-${run.stage}-${run.army.length}-${run.coins}`,type}]};}
 export function takeRelic(run:Run,relic:Relic):Run {return {...run,relics:[...new Set([...run.relics,relic])],charges:run.charges+(relic==='hourglass'?2:0)};}
 function evaluate(chess:Chess):number {
   if(chess.isCheckmate()) return chess.turn()==='b'?100000:-100000;

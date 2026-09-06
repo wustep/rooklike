@@ -50,6 +50,17 @@ describe('Chess legality and campaign integration',()=>{
   it('does not permit overspending or overfilling the company',()=>{
     let run=newRun();expect(recruit(run,'q',65)).toBe(run);for(let i=0;i<10;i++)run=recruit(run,'n');expect(run.army).toHaveLength(12);
   });
+  it('deploys pawn-heavy and promotion-heavy companies without putting pawns on rank 1',()=>{
+    let run=newRun();run.army=run.army.filter(u=>u.type==='k');
+    for(let i=0;i<10;i++)run=recruit(run,'p');
+    expect(run.army.filter(u=>u.type==='p')).toHaveLength(8);
+    for(let i=0;i<3;i++)run=recruit(run,'n');
+    expect(run.army).toHaveLength(12);
+    const chess=new Chess(makeBattle(run.army,4).fen);
+    expect(chess.board().flat().filter(p=>p?.color==='w'&&p.type==='p').every(p=>p?.square[1]==='2')).toBe(true);
+    run.army=run.army.map(u=>u.type==='p'?{...u,type:'q' as const}:u);
+    expect(()=>makeBattle(run.army,4)).not.toThrow();
+  });
   it('AI returns legal moves at both strengths without mutating the position',()=>{
     const chess=getChess(newRun());const fen=chess.fen();for(const difficulty of ['wanderer','tactician'] as const){const move=chooseMove(chess,difficulty,'d5');expect(chess.moves()).toContain(move?.san);expect(chess.fen()).toBe(fen);expect(chess.history()).toEqual([]);}
   });

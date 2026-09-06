@@ -2,6 +2,10 @@
 
 A complete first act of an original chess teaching roguelike. Lead an ivory company through five encounters in Mosswood, Glass Marsh, and the Ember Library, then break the Hollow Crown.
 
+**Play:** https://rooklike.vercel.app
+
+**Private source repository:** https://github.com/wustep/rooklike
+
 ## Play locally
 
 Requires Node.js 20.19+ (or Node.js 22.12+) and npm.
@@ -25,7 +29,7 @@ The production preview opens at **http://localhost:4173**.
 - You play ivory. Click a piece and then a highlighted square. All highlighted moves keep your king safe.
 - Capture the enemy marked with a small crown **or checkmate the enemy king** to clear each encounter, including the boss. Captain capture is an explicit scenario victory condition; checkmate is ordinary chess checkmate.
 - Check forces a response. Being checkmated ends your run. Stalemate, repetition, insufficient material, and the 50-move rule end the run as a draw.
-- Surviving pieces carry forward; captured allies stay lost. Between battles, choose one free reward and spend crowns on recruits. Your company can hold 12 pieces.
+- Surviving pieces carry forward; captured allies stay lost. Between battles, choose one free reward and spend crowns on recruits. Your company can hold 12 pieces, including at most eight pawns.
 - Pawns move toward rank 8 and choose queen, rook, bishop, or knight on promotion. Castling and en passant work under standard chess rules. Each encounter begins with a fresh deployment and corresponding castling rights.
 - Monster effects are explicitly described in the field guide. The Mire Rider steals crowns when it captures; the Lantern Keeper restores a Takeback when defeated. Their movement and captures remain standard chess.
 - Relics grant Takebacks, additional victory income, or a suggested move. They never change how a piece moves.
@@ -66,4 +70,14 @@ Google Fonts enhance typography when online; system fonts are available as fallb
 
 ## Deploy
 
-Vercel recognizes the Vite build automatically. `vercel.json` explicitly sets the build and output directory. Deploy with `vercel` for a preview or `vercel --prod` for the production alias. GitHub should remain a **private** repository.
+Vercel recognizes the Vite build automatically. `vercel.json` explicitly sets the build and output directory. Deploy with `vercel` for a preview or `vercel --prod` for the production alias. GitHub is a **private** repository, connected to Vercel for automatic deployment.
+
+## Managed workspace note
+
+This workspace mounts its `.git` directory read-only. The publishing checkout is `/tmp/rooklike-publish`; source files remain in `/workspace/projects/rooklike`. For a normal local Git workflow, clone the private repository into a writable directory. Vercel project settings are linked locally in the ignored `.vercel/` directory.
+
+The shipped build passed 16 rules/campaign tests and five Chromium browser tests, including a full campaign through the real UI. For a smoke test against the live site:
+
+```sh
+PLAYWRIGHT_BASE_URL=https://rooklike.vercel.app PLAYWRIGHT_BROWSERS_PATH=.playwright-browsers npm run test:browser -- --grep desktop
+```
