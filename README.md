@@ -26,7 +26,7 @@ The production preview opens at **http://localhost:4173**.
 
 ## How to play
 
-- You play ivory. Click a piece and then a highlighted square. All highlighted moves keep your king safe.
+- You play ivory. Drag a piece or click it and then a highlighted square. All highlighted moves keep your king safe. Escape, an invalid drop, or a drop off the board cancels a drag.
 - Capture the enemy marked with a small crown **or checkmate the enemy king** to clear each encounter, including the boss. Captain capture is an explicit scenario victory condition; checkmate is ordinary chess checkmate.
 - Check forces a response. Being checkmated ends your run. Stalemate, repetition, insufficient material, and the 50-move rule end the run as a draw.
 - Surviving pieces carry forward; captured allies stay lost. Between battles, choose one of four free rewards, spend crowns on recruits, and choose the next road. Send pieces home at camp to free slots and recover two crowns per material point. Your company can hold 12 pieces, including at most eight pawns.
@@ -34,7 +34,7 @@ The production preview opens at **http://localhost:4173**.
 - Monster effects are explicitly described in the field guide. The Mire Rider steals crowns when it captures; the Lantern Keeper restores a Takeback when defeated. Their movement and captures remain standard chess.
 - Eleven relics support Takebacks, victory income, suggested moves, knight captures, surviving bishops on both colors, pawn promotion, and castling. They never change how a piece moves.
 - `H`: enemy threat vision. `U`: spend a Takeback to rewind your move and the enemy reply. Arrow keys: board navigation. Enter/Space: select or move. `?`: field guide. Escape: close or deselect.
-- Wanderer starts with a gentle opening and ramps toward four-ply search; Tactician targets up to five. Each encounter has its own depth, position budget, and capture-extension settings in `src/engine.ts`. Iterative deepening, alpha-beta pruning, transposition caching, move ordering, and quiescence search preserve the last completed depth within the budget. Actual completed depth depends on the position. Captains are explicit search objectives, including when they move. Enemy thinking runs in a Web Worker.
+- **Easy** starts with a gentle opening and ramps toward four-ply search; **Hard** looks one ply further. Each encounter has its own depth, position budget, and capture-extension settings in `src/engine.ts`. Iterative deepening, alpha-beta pruning, transposition caching, move ordering, and quiescence search preserve the last completed depth within the budget. Actual completed depth depends on the position. Captains are explicit search objectives, including when they move. Enemy thinking runs in a Web Worker.
 
 Takeback history lasts until the page reloads or the next encounter starts; remaining charges and campaign progress are saved. The final board can be opened for study after a win, defeat, or draw.
 
