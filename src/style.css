@@ -51,6 +51,14 @@
 @media(prefers-reduced-motion:reduce){.square.king-check .piece,.square.last-move .piece{animation:none!important}.bonus-track>span{transition:none}}
 .reward-choice.packed:disabled{opacity:1;border-color:var(--accent);background:#b7d28a18}.reward-choice.packed>span:last-child:before{content:'✓ PACKED';margin-right:8px;color:var(--accent)}.roster-toggle{font-size:10px;margin-top:7px;padding:5px 0}.camp-roster{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.camp-roster button{display:flex;gap:7px;align-items:center;padding:7px;text-align:left;background:#ffffff05;border:1px solid #ffffff14;border-radius:5px;font-size:10px}.camp-roster small{display:block;color:var(--gold);font-size:9px;margin-top:4px}.captain-aura{filter:drop-shadow(0 0 2px #efcb7466)}
 @media(max-width:720px){.camp-roster{grid-template-columns:1fr 1fr}}
+.square{touch-action:none;user-select:none}
+.chessboard.is-dragging{cursor:grabbing}
+.chessboard.is-dragging .square{cursor:grabbing}
+.square.dragging-from .piece{opacity:.32}
+.square.drop-target{box-shadow:inset 0 0 0 50px #e8dc6f66,inset 0 0 0 3px #f4f1b0!important}
+.drag-ghost{position:fixed;z-index:80;width:72px;height:80px;pointer-events:none;transform:translate(-50%,-70%);filter:drop-shadow(3px 10px 8px #0b180c88)}
+.drag-ghost .piece{width:100%;height:100%}
+@media(prefers-reduced-motion:reduce){.drag-ghost{filter:none}}
 
 .reward-options:has(.packed){grid-template-columns:1fr}.reward-options:has(.packed) .reward-choice:not(.packed){display:none}.reward-choice.packed{display:grid;grid-template-columns:35px 1fr auto;align-items:center;gap:0 12px;min-height:0;padding:12px 15px}.reward-choice.packed>strong{margin:0}.reward-choice.packed>p{grid-column:2/4;margin:4px 0 0}.reward-choice.packed>.piece,.reward-choice.packed>.reward-icon{grid-column:1;grid-row:1/3;margin:0}.reward-choice.packed>span:last-child{grid-column:3;grid-row:1;width:auto}.reward-choice.packed>span:last-child svg{display:none}
 .capture-feedback{position:absolute;top:20px;left:50%;translate:-50% 0;padding:9px 15px;background:#283c2bf2;border:1px solid #cbdea26b;color:#e1ebc6;border-radius:5px;font-size:11px;box-shadow:0 7px 20px #0004;pointer-events:none;z-index:6;white-space:nowrap;animation:capture-note 1.8s both}.capture-feedback.ally-lost{background:#4a2925f2;color:#f1c2a4;border-color:#ee9d7066}@keyframes capture-note{0%{opacity:0;transform:translateY(8px)}15%,70%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8px)}}

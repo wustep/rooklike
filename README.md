@@ -26,7 +26,7 @@ The production preview opens at **http://localhost:4173**.
 
 ## How to play
 
-- You play ivory. Click a piece and then a highlighted square. All highlighted moves keep your king safe.
+- You play ivory. Drag a piece or click it and then a highlighted square. All highlighted moves keep your king safe. Escape, an invalid drop, or a drop off the board cancels a drag.
 - Capture the enemy marked with a small crown **or checkmate the enemy king** to clear each encounter, including the boss. Captain capture is an explicit scenario victory condition; checkmate is ordinary chess checkmate.
 - Check forces a response. Being checkmated ends your run. Stalemate, repetition, insufficient material, and the 50-move rule end the run as a draw.
 - Surviving pieces carry forward; captured allies stay lost. Between battles, choose one of four free rewards, spend crowns on recruits, and choose the next road. Send pieces home at camp to free slots and recover two crowns per material point. Your company can hold 12 pieces, including at most eight pawns.
