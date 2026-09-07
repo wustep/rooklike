@@ -84,7 +84,7 @@ test('promotion choice can cause a material draw; final board remains ended',asy
 
 test('mobile: board fits and controls stay usable',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'Begin your journey'}).click();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.locator('[data-square="b1"]').click();await page.screenshot({path:'artifacts/mobile.png',fullPage:true});await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   await page.getByRole('button',{name:/Threats/}).click();await expect(page.locator('.threat-dot').first()).toBeVisible();
