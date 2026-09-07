@@ -8,11 +8,11 @@ test('desktop: drag a piece to a legal square and cancel an invalid drop',async(
   await page.locator('[data-square="b1"]').dragTo(page.locator('[data-square="c3"]'));
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   await expect(page.locator('[data-square="c3"]')).toHaveAttribute('aria-label',/your Knight/);
-  await page.locator('[data-square="g1"]').hover();
+  await page.locator('[data-square="c1"]').hover();
   await page.mouse.down();
   await page.mouse.move(40,40);
   await page.mouse.up();
-  await expect(page.locator('[data-square="g1"]')).toHaveAttribute('aria-label',/your Knight/);
+  await expect(page.locator('[data-square="c1"]')).toHaveAttribute('aria-label',/your Bishop/);
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length)).toBe(2);
 });
 test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save and help',async({page})=>{
