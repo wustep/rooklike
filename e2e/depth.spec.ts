@@ -23,10 +23,14 @@ test('a relic choice, roster change and dangerous road persist and deploy on mob
   expect(run.coins).toBe(51);expect(run.charges).toBe(2);expect(run.army.filter(u=>u.type==='n')).toHaveLength(2);expect(run.relics).toContain('spurs');
 });
 test('enemy inspection traces attacks and changes the position read',async({page})=>{
-  await seed(page,newRun());await page.locator('[data-square="d5"]').click();
+  await seed(page,newRun());
+  const before=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,board:document.querySelector('.board-frame')!.getBoundingClientRect().left,height:document.documentElement.scrollHeight}));
+  await page.locator('[data-square="d5"]').click();
   await expect(page.locator('[data-square="d4"]')).toHaveClass(/enemy-reach/);
   await expect(page.locator('.position-read')).toContainText('Rook on d5');
   await expect(page.getByRole('heading',{name:'Briar Sentinel'})).toBeVisible();
+  const after=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,board:document.querySelector('.board-frame')!.getBoundingClientRect().left,height:document.documentElement.scrollHeight}));
+  expect(after.client).toBe(before.client);expect(after.scroll).toBe(before.scroll);expect(after.board).toBe(before.board);expect(after.height).toBe(before.height);
   await page.locator('[data-square="b1"]').click();
   await expect(page.locator('.enemy-reach')).toHaveCount(0);await expect(page.locator('[data-square="c3"]')).toHaveClass(/legal/);
 });

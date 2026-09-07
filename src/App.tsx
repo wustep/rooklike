@@ -181,7 +181,7 @@ export default function App() {
         </div>
         {hint&&<div className="hint-message"><Sparkles size={16}/><span><strong>{hint.from} → {hint.to}.</strong> {hint.text}</span></div>}
         {journal&&<div className="journal"><div className="section-label">JOURNAL <button className="icon-button" aria-label="Close journal" onClick={()=>setJournal(false)}><X size={14}/></button></div><div>{run.log.map((entry,i)=><span key={i}>{entry}</span>)}</div></div>}
-        {selected&&inspected&&<div className="inspect"><h3>{inspectedSquare===run.elite?encounter.enemy:NAMES[inspected.type]}</h3><div className="position-read" role="status"><p>{tacticalRead(chess,selected)}</p></div></div>}
+        <div className="inspect" aria-live="polite">{selected&&inspected?<><h3>{inspectedSquare===run.elite?encounter.enemy:NAMES[inspected.type]}</h3><div className="position-read" role="status"><p>{tacticalRead(chess,selected)}</p></div></>:<div className="position-read" role="status"><p/></div>}</div>
       </main>
     </div>
     </div>
