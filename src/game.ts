@@ -4,6 +4,7 @@ import { assertPosition, legalMove, repairSetup } from './rules';
 export type Unit = { id: string; type: PieceSymbol };
 export type Relic = 'hourglass' | 'purse' | 'compass' | 'spurs' | 'choir' | 'seed' | 'bastion' | 'salvage' | 'vow' | 'supply' | 'trophy';
 export type Difficulty = 'wanderer' | 'tactician';
+export const DIFFICULTY_LABELS: Record<Difficulty, string> = { wanderer: 'Easy', tactician: 'Hard' };
 export type Route = 'shelter' | 'danger';
 export type Phase = 'battle' | 'reward' | 'victory' | 'defeat' | 'draw';
 export type Encounter = { name: string; place: string; theme: string; description: string; lesson: string; enemy: string; ability: string; target: Square; pieces: [Square, PieceSymbol][]; bounty: number; power?: string; par?: number; effect?: 'theft' | 'lantern' | 'oracle' | 'toll' };
@@ -66,7 +67,7 @@ export type Run = { stage: number; army: Unit[]; positions: Record<string, strin
 export const RELICS: Record<Relic,{name:string;description:string}> = {
   hourglass: {name:'Second Thought',description:'Gain 2 Takebacks. One charge undoes your move and the reply.'},
   purse: {name:'Royal Purse',description:'Every victory pays +10 crowns.'},
-  compass: {name:'Tactician’s Lens',description:'Unlock a suggested legal move and its idea.'},
+  compass: {name:'Hint Lens',description:'Unlock a suggested legal move and its idea.'},
   spurs: {name:'Forked Spurs',description:'Each knight capture pays +4 crowns now.'},
   choir: {name:'Two-color Choir',description:'+14 crowns if bishops on both colors survive the fight.'},
   seed: {name:'Crownseed',description:'Each promotion: +20 crowns and a Takeback.'},
