@@ -5,9 +5,9 @@ export type SearchProfile = { depth: number; nodes: number; quiescence: number }
 export type SearchStats = { depth: number; nodes: number; score: number };
 export const SEARCH_PROFILES: SearchProfile[] = [
   {depth:1,nodes:350,quiescence:0},
-  {depth:1,nodes:750,quiescence:1},
-  {depth:2,nodes:1200,quiescence:2},
-  {depth:2,nodes:1800,quiescence:3},
+  {depth:1,nodes:550,quiescence:1},
+  {depth:1,nodes:800,quiescence:2},
+  {depth:2,nodes:1600,quiescence:3},
   {depth:3,nodes:2400,quiescence:3},
   {depth:3,nodes:3000,quiescence:3},
   {depth:3,nodes:3600,quiescence:4},
@@ -130,7 +130,7 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
       if(chess.isCheckmate())return -WIN;
       let result=evaluatePosition(chess)*sign();
       if(chess.isAttacked(move.to,chess.turn()))result+=VALUE[move.piece]*.8;
-      if(move.color==='b'&&elite&&chess.isAttacked(move.from===elite?move.to:elite,'w'))result+=stage>=4?20000:stage>=2?(move.from===elite?1800:300):move.from===elite?400:0;
+      if(move.color==='b'&&elite&&chess.isAttacked(move.from===elite?move.to:elite,'w'))result+=stage>=4?20000:stage>=3?(move.from===elite?1800:300):move.from===elite?400:0;
       return result;
     });
     if(value>fallback){fallback=value;best=move;}
