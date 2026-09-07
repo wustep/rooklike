@@ -27,9 +27,11 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   await expect(page.locator('[data-square="c3"]')).toHaveAttribute('aria-label',/your Knight/);
-  await page.getByRole('button',{name:/Takeback/}).click();
+  const takeback=page.getByRole('button',{name:/Takeback/});
+  await takeback.click();
   await expect(page.locator('[data-square="b1"]')).toHaveAttribute('aria-label',/your Knight/);
   await expect(page.locator('.charge-count')).toHaveText('1');
+  await expect(takeback).toBeEnabled();
   await page.keyboard.press('h');await expect(page.locator('.threat-dot').first()).toBeVisible();
   await page.locator('[data-square="e2"]').focus();await page.keyboard.press('Enter');await page.keyboard.press('ArrowUp');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
@@ -38,6 +40,27 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   expect(errors).toEqual([]);
 });
 
+test('desktop: takeback can rewind several turns in a row',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.addInitScript(()=>localStorage.setItem('rooklike-welcomed','1'));
+  await page.goto('/');
+  await page.locator('[data-square="e2"]').click();await page.locator('[data-square="e4"]').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
+  await page.locator('[data-square="b1"]').click();await page.locator('[data-square="c3"]').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===4);
+  const takeback=page.getByRole('button',{name:/Takeback/});
+  await expect(takeback).toBeEnabled();
+  await takeback.click();
+  await expect(page.locator('[data-square="b1"]')).toHaveAttribute('aria-label',/your Knight/);
+  await expect(page.locator('[data-square="e4"]')).toHaveAttribute('aria-label',/your Pawn/);
+  await expect(page.locator('.charge-count')).toHaveText('1');
+  await expect(takeback).toBeEnabled();
+  await takeback.click();
+  await expect(page.locator('[data-square="e2"]')).toHaveAttribute('aria-label',/your Pawn/);
+  await expect(page.locator('.charge-count')).toHaveText('0');
+  await expect(takeback).toBeDisabled();
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves)).toEqual([]);
+});
 test('reward persists across reload, recruits deploy, and theme changes',async({page})=>{
   let run=newRun();run.initialFen='7k/8/8/8/8/r7/8/R3K3 w - - 0 1';run.elite='a3';run.positions={a1:'rook',e1:'king'};run.army=[{id:'king',type:'k'},{id:'rook',type:'r'}];
   await page.addInitScript(({run,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
@@ -64,7 +87,7 @@ test('mobile: board fits and controls stay usable',async({page})=>{
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
   await page.locator('[data-square="b1"]').click();await page.screenshot({path:'artifacts/mobile.png',fullPage:true});await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
-  await page.getByRole('button',{name:/Threat vision/}).click();await expect(page.locator('.threat-dot').first()).toBeVisible();
+  await page.getByRole('button',{name:/Threats/}).click();await expect(page.locator('.threat-dot').first()).toBeVisible();
   await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Back to the board'}).click();
 });
 
