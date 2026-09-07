@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { PieceSymbol, Square } from 'chess.js';
 import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coins, Crown, Eye, EyeOff, Flag, Gem, Heart, RotateCcw, Shield, Skull, Sparkles, Swords, Volume2, VolumeX, X } from 'lucide-react';
 import { legalMoves } from './rules';
@@ -7,6 +7,7 @@ import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision
 
 function sound(capture=false) {try {const ctx=new AudioContext(); const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.setValueAtTime(capture?260:440,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(capture?90:220,ctx.currentTime+.13);gain.gain.setValueAtTime(.06,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.start();osc.stop(ctx.currentTime+.18);osc.onended=()=>void ctx.close();}catch{/* Audio is optional. */}}
 const FILES='abcdefgh';
+const RESULT_BEAT_MS=650;
 export default function App() {
   const [run,setRun]=useState<Run>(loadRun);
   const [selected,setSelected]=useState<Square|null>(null);
@@ -25,12 +26,15 @@ export default function App() {
   const [saveError,setSaveError]=useState(false);
   const [roster,setRoster]=useState(false);
   const [journal,setJournal]=useState(false);
+  const [resultHold,setResultHold]=useState(false);
   const [focusSquare,setFocusSquare]=useState<Square>('e2');
   const [drag,setDrag]=useState<{from:Square;x:number;y:number;originX:number;originY:number;piece:{type:PieceSymbol;color:'w'|'b'};active:boolean;already:boolean}|null>(null);
   const squareRefs=useRef<Record<string,HTMLButtonElement|null>>({});
   const mutedRef=useRef(muted);mutedRef.current=muted;
   const dragRef=useRef(drag);dragRef.current=drag;
   const skipClick=useRef(false);
+  const seenPhase=useRef(run.phase);
+  const resultHoldTimer=useRef(0);
   const chess=useMemo(()=>getChess(run),[run]);
   const encounter=getEncounter(run);
   const act=ACTS[Math.floor(run.stage/4)];
@@ -60,6 +64,21 @@ export default function App() {
     return()=>{clearTimeout(timer);worker.terminate();};
   },[thinking,run,intro,help,restart]);
   useEffect(()=>{if(notice){const t=setTimeout(()=>setNotice(''),4000);return()=>clearTimeout(t);}},[notice]);
+  useLayoutEffect(()=>{
+    const previous=seenPhase.current;seenPhase.current=run.phase;
+    if(previous==='battle'&&run.phase!=='battle'){
+      if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){setResultHold(false);return;}
+      setResultHold(true);
+      if(resultHoldTimer.current)window.clearTimeout(resultHoldTimer.current);
+      resultHoldTimer.current=window.setTimeout(()=>{resultHoldTimer.current=0;setResultHold(false);},RESULT_BEAT_MS);
+      return;
+    }
+    if(run.phase==='battle'){
+      if(resultHoldTimer.current){window.clearTimeout(resultHoldTimer.current);resultHoldTimer.current=0;}
+      setResultHold(false);
+    }
+  },[run.phase]);
+  useEffect(()=>()=>{if(resultHoldTimer.current)window.clearTimeout(resultHoldTimer.current);},[]);
 
   function undo() {
     const next=takeback(run,history);if(!next)return;
@@ -124,7 +143,8 @@ export default function App() {
   function reset(seed?:number) {setRun(newRun(run.difficulty,seed));setRestart(false);setSelected(null);setHint(null);setHistory([]);setStudying(false);setDrag(null);}
   function start() {setIntro(false);try{localStorage.setItem('rooklike-welcomed','1');}catch{/* Optional. */}}
   function buy(type:PieceSymbol,cost:number) {const next=recruit(run,type,cost);if(next===run){setNotice('Cannot recruit.');return;}setRun(next);setNotice(`${NAMES[type]} joined.`);}
-  const modalOpen=intro||help||restart||!!promotion||(run.phase!=='battle'&&!studying);
+  const resultReady=run.phase!=='battle'&&!resultHold&&!studying;
+  const modalOpen=intro||help||restart||!!promotion||resultReady;
 
   return <div className={`app theme-${encounter.theme}`}>
     <div className="ambient" aria-hidden="true"><i/><i/><i/></div>
@@ -151,7 +171,7 @@ export default function App() {
       <main className="battle-panel">
         <div className="encounter-heading"><h1>{encounter.name}</h1></div>
         <div className={`turn-bar ${chess.isCheck()?'check-bar':''}`}><div><span className={`turn-indicator ${thinking?'thinking':''}`}/><strong>{chess.isCheck()?(thinking?'Enemy king in check':'Check'):thinking?'Enemy thinking…':'Your move'}</strong></div><span className="turn-count">{Math.floor(run.moves.length/2)+1}</span></div>
-        <div className={`board-scene ${lastMove?.captured?'capture-scene':''}`}>
+        <div className={`board-scene ${lastMove?.captured?'capture-scene':''} ${resultHold?'result-hold':''}`}>
           {lastMove?.captured&&<div key={`${run.stage}-${run.moves.length}`} className={`capture-feedback ${lastMove.color==='b'?'ally-lost':''}`} role="status">{lastMove.color==='w'?`${NAMES[lastMove.captured]} captured`:`${NAMES[lastMove.captured]} lost`}</div>}
           <div className="board-frame">
             <div className="rank-labels" aria-hidden="true">{[8,7,6,5,4,3,2,1].map(r=><span key={r}>{r}</span>)}</div>
@@ -190,7 +210,7 @@ export default function App() {
     {help&&!intro&&<Modal label="How to play"><button className="modal-close icon-button" onClick={()=>setHelp(false)} aria-label="Close help"><X/></button><span className="eyebrow">FIELD GUIDE</span><h2>Chess, with a journey.</h2><p>You play ivory. Drag or click a piece to a highlighted square. One legal move each.</p><div className="help-grid"><div><Shield/><h3>King is sacred</h3><p>Never leave your king in check. Capture, block, or move. Checkmate ends the run.</p></div><div><Crown/><h3>Hunt the crown</h3><p>Capture the marked captain or checkmate to win. You do not need every piece.</p></div><div><Heart/><h3>Keep your company</h3><p>Lost allies stay lost. Survivors redeploy. One free gift, then recruits. Max 12.</p></div><div><Eye/><h3>Learn by looking</h3><p>Select a piece for its moves. H shows threats. U undoes a turn; press again to rewind further.</p></div></div><p className="help-fine">Pawns promote on rank 8. Castling and en passant work. Draws end the run. Monster abilities change rewards, not movement. Sheltered road: +1 Takeback. Dangerous road: extra guard, +20. Swift passage: +12 if you beat the turn target.</p><div className="help-shortcuts"><span><kbd>↑ ↓ ← →</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span><kbd>H</kbd> Threats</span><span><kbd>U</kbd> Takeback</span><span><kbd>Esc</kbd> Cancel</span></div><button className="primary-button" onClick={()=>setHelp(false)}>Back to the board <ArrowRight size={16}/></button></Modal>}
     {restart&&!intro&&<Modal label="Start a new journey"><span className="eyebrow">FRESH START</span><h2>Take another road?</h2><p>This replaces your save. Fresh company, two Takebacks. Replay this road or roll a new one.</p><div className="modal-actions"><button className="secondary-button" onClick={()=>reset(run.seed)}>Replay this road</button><button className="secondary-button" onClick={()=>setRestart(false)}>Keep playing</button><button className="primary-button" onClick={()=>reset()}>New journey <ArrowRight size={16}/></button></div></Modal>}
     {promotion&&<Modal label="Choose promotion"><span className="eyebrow">PROMOTION</span><h2>Choose a piece.</h2><p>Your pawn reached the last rank.</p><div className="promotion-options">{(['q','r','b','n'] as PieceSymbol[]).map(type=><button key={type} onClick={()=>move(promotion.from,promotion.to,type)}><Piece type={type}/><strong>{NAMES[type]}</strong></button>)}</div></Modal>}
-    {run.phase==='reward'&&!restart&&<Modal label="Encounter won" className="reward-modal">
+    {run.phase==='reward'&&!restart&&!resultHold&&<Modal label="Encounter won" className="reward-modal">
       <span className="eyebrow">{campActEnd?`ACT ${act.numeral} COMPLETE`:`CAMP · ${String(run.stage+1).padStart(2,'0')} CLEARED`}</span><h2>{run.battleLosses===0?'Everyone came home.':'Count the living.'}</h2><p>{run.battleLosses===0?'An intact company is better than a clean board.':'Give the survivors a better plan.'}</p>
       <div className="battle-summary"><span><Coins size={17}/><strong>+{run.earned}</strong> crowns</span><span><Shield size={17}/><strong>{run.battleLosses===0?'Flawless':run.battleLosses}</strong> {run.battleLosses===0?'· +10 bonus':'allies lost'}</span><span><Swords size={17}/><strong>{Math.ceil(run.moves.length/2)}</strong> turns</span></div>
       <div className="payout-list">{run.payout.map(p=><span key={p.label}>{p.label} <b>+{p.amount}</b></span>)}{run.battleBonus>0&&<span>Relics paid during battle <b>+{run.battleBonus}</b></span>}</div>
@@ -203,7 +223,7 @@ export default function App() {
       <p className="next-warning">{routeMap[run.stage+1].enemy} · {routeMap[run.stage+1].lesson}</p>
       <button className="primary-button wide" disabled={!rewardChosen||(campActEnd&&!run.provisionClaimed)} onClick={()=>{setRun(nextBattle(run));setSelected(null);setHovered(null);setHint(null);setHistory([]);setRoster(false);}}>Continue to {routeMap[run.stage+1].place.toLowerCase()} <ArrowRight size={17}/></button>
     </Modal>}
-    {(run.phase==='victory'||run.phase==='defeat'||run.phase==='draw')&&!restart&&!studying&&<Modal label={run.phase==='victory'?'Campaign complete':'Journey ended'} className="end-modal"><span className={`end-icon ${run.phase}`} >{run.phase==='victory'?<Crown size={48}/>:run.phase==='draw'?<Flag size={48}/>:<Skull size={48}/>}</span><span className="eyebrow">{run.phase==='victory'?'THREE ACTS COMPLETE':run.phase==='draw'?'A DRAW':'THE JOURNEY ENDS'}</span><h2>{run.phase==='victory'?'Long live your company.':run.phase==='draw'?'The road falls quiet.':'A crown in the dust.'}</h2><p>{run.phase==='victory'?'The Hollow Crown is broken. Your company did something rare.':run.phase==='draw'?'A draw ends the journey. Leave the enemy king an escape when you can.':'Checkmate. Develop, watch threats, give the king a safe square.'}</p><div className="end-stats"><span><strong>{run.stage+(run.phase==='victory'?1:0)}</strong>cleared</span><span><strong>{run.captures}</strong>captures</span><span><strong>{run.army.length}</strong>in company</span></div><div className="end-chapter">{pressure} · {DIFFICULTY_LABELS[run.difficulty]}</div>{run.phase!=='victory'&&canUndo&&<button className="secondary-button recover-button" onClick={undo}><RotateCcw size={15}/> Spend a Takeback · try another line</button>}<button className="primary-button" onClick={()=>reset()}>Begin another journey <ArrowRight size={17}/></button><button className="quiet-button" onClick={()=>{setStudying(true);setNotice('Final board opened.');}}>Study the final board <BookOpen size={15}/></button></Modal>}
+    {(run.phase==='victory'||run.phase==='defeat'||run.phase==='draw')&&!restart&&!studying&&!resultHold&&<Modal label={run.phase==='victory'?'Campaign complete':'Journey ended'} className="end-modal"><span className={`end-icon ${run.phase}`} >{run.phase==='victory'?<Crown size={48}/>:run.phase==='draw'?<Flag size={48}/>:<Skull size={48}/>}</span><span className="eyebrow">{run.phase==='victory'?'THREE ACTS COMPLETE':run.phase==='draw'?'A DRAW':'THE JOURNEY ENDS'}</span><h2>{run.phase==='victory'?'Long live your company.':run.phase==='draw'?'The road falls quiet.':'A crown in the dust.'}</h2><p>{run.phase==='victory'?'The Hollow Crown is broken. Your company did something rare.':run.phase==='draw'?'A draw ends the journey. Leave the enemy king an escape when you can.':'Checkmate. Develop, watch threats, give the king a safe square.'}</p><div className="end-stats"><span><strong>{run.stage+(run.phase==='victory'?1:0)}</strong>cleared</span><span><strong>{run.captures}</strong>captures</span><span><strong>{run.army.length}</strong>in company</span></div><div className="end-chapter">{pressure} · {DIFFICULTY_LABELS[run.difficulty]}</div>{run.phase!=='victory'&&canUndo&&<button className="secondary-button recover-button" onClick={undo}><RotateCcw size={15}/> Spend a Takeback · try another line</button>}<button className="primary-button" onClick={()=>reset()}>Begin another journey <ArrowRight size={17}/></button><button className="quiet-button" onClick={()=>{setStudying(true);setNotice('Final board opened.');}}>Study the final board <BookOpen size={15}/></button></Modal>}
   </div>;
 }
 function Modal({children,label,className=''}:{children:React.ReactNode;label:string;className?:string}) {

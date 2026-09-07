@@ -65,6 +65,9 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
   let run=newRun();run.initialFen='7k/8/8/8/8/r7/8/R3K3 w - - 0 1';run.elite='a3';run.positions={a1:'rook',e1:'king'};run.army=[{id:'king',type:'k'},{id:'rook',type:'r'}];
   await page.addInitScript(({run,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
   await page.locator('[data-square="a1"]').click();await page.locator('[data-square="a3"]').click();
+  await expect(page.locator('.board-scene')).toHaveClass(/result-hold/);
+  await expect(page.locator('[data-square="a3"]')).toHaveClass(/last-move/);
+  await expect(page.getByRole('dialog',{name:'Encounter won'})).toHaveCount(0);
   await expect(page.getByRole('dialog',{name:'Encounter won'})).toBeVisible();
   await page.getByRole('button',{name:/A willing knight/}).click();
   await page.reload();await expect(page.getByRole('button',{name:/A willing knight/})).toBeDisabled();
