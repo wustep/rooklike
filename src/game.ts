@@ -65,7 +65,7 @@ export function shopStock(run:Run):{type:PieceSymbol;cost:number}[] {
 export const START_ARMY: Unit[] = [{id:'king',type:'k'},{id:'rook',type:'r'},{id:'knight',type:'n'},{id:'bishop',type:'b'},{id:'pawn1',type:'p'},{id:'pawn2',type:'p'},{id:'pawn3',type:'p'}];
 export type Run = { stage: number; army: Unit[]; positions: Record<string, string>; initialFen: string; moves: string[]; elite: Square | null; coins: number; relics: Relic[]; charges: number; phase: Phase; captures: number; losses: number; battleLosses: number; difficulty: Difficulty; log: string[]; earned: number; seed: number; rewardClaimed: boolean; claimedReward: string | null; version: 3; battleUndos: number; provisionClaimed: boolean; route: Route; nextRoute: Route; battleBonus: number; bountyPenalty: number; castlePaid: boolean; payout: { label: string; amount: number }[]; };
 export const RELICS: Record<Relic,{name:string;description:string}> = {
-  hourglass: {name:'Second Thought',description:'Gain 2 Takebacks. One charge undoes your move and the reply.'},
+  hourglass: {name:'Second Thought',description:'Gain 2 Takebacks. Each charge undoes a turn; spend again to rewind further.'},
   purse: {name:'Royal Purse',description:'Every victory pays +10 crowns.'},
   compass: {name:'Hint Lens',description:'Unlock a suggested legal move and its idea.'},
   spurs: {name:'Forked Spurs',description:'Each knight capture pays +4 crowns now.'},
@@ -175,6 +175,12 @@ export function sendHome(run: Run, id: string): Run {
   return {...run,army:run.army.filter(u=>u.id!==id),coins:run.coins+VALUES[unit.type]*2};
 }
 export function takeRelic(run:Run,relic:Relic):Run {return {...run,relics:[...new Set([...run.relics,relic])],charges:run.charges+(relic==='hourglass'?2:0)};}
+export function rememberTurn(history:Run[],run:Run):Run[] {return [...history,structuredClone(run)];}
+export function takeback(run:Run,history:Run[]):{run:Run;history:Run[]}|null {
+  const previous=history.at(-1);
+  if(!previous||run.charges<1||!['battle','defeat','draw'].includes(run.phase))return null;
+  return {run:{...structuredClone(previous),charges:run.charges-1,battleUndos:run.battleUndos+1},history:history.slice(0,-1)};
+}
 export { chooseMove } from './engine';
 export function tacticalRead(chess: Chess, square?: Square|null): string {
   if(chess.isCheck())return chess.turn()==='w'?'Check. Capture, block, or move the king.':'Their king is in check. Watch what has to move.';

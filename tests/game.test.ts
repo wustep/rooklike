@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -63,5 +63,23 @@ describe('Chess legality and campaign integration',()=>{
   });
   it('AI returns legal moves at both strengths without mutating the position',()=>{
     const chess=getChess(newRun());const fen=chess.fen();for(const difficulty of ['wanderer','tactician'] as const){const move=chooseMove(chess,difficulty,'d5');expect(chess.moves()).toContain(move?.san);expect(chess.fen()).toBe(fen);expect(chess.history()).toEqual([]);}
+  });
+  it('takeback rewinds several turns in one fight and keeps a legal board',()=>{
+    const ply=(current:Run,prefer?:string)=>{const moves=getChess(current).moves();const san=prefer&&moves.includes(prefer)?prefer:moves[0];return playMove(current,san);};
+    let run=newRun();let history:Run[]=[];
+    const opening=getChess(run).fen();
+    history=rememberTurn(history,run);run=ply(run,'e4');run=ply(run);
+    const afterFirst=run;
+    history=rememberTurn(history,run);run=ply(run,'Nc3');run=ply(run);
+    expect(run.moves.length).toBe(4);expect(run.charges).toBe(2);
+    const once=takeback(run,history)!;expect(once.run.moves).toEqual(afterFirst.moves);expect(getChess(once.run).fen()).toBe(getChess(afterFirst).fen());expect(once.run.charges).toBe(1);expect(once.run.battleUndos).toBe(1);expect(once.run.phase).toBe('battle');
+    const twice=takeback(once.run,once.history)!;expect(twice.run.moves).toEqual([]);expect(getChess(twice.run).fen()).toBe(opening);expect(twice.run.charges).toBe(0);expect(twice.run.battleUndos).toBe(2);expect(takeback(twice.run,twice.history)).toBeNull();
+  });
+  it('takeback restores captured pieces and refuses an empty or uncharged history',()=>{
+    let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','h8');
+    expect(takeback(run,[])).toBeNull();
+    const history=rememberTurn([],run);run=playMove(run,'Rxa3');expect(run.captures).toBe(1);
+    const undone=takeback({...run,charges:0},history);expect(undone).toBeNull();
+    const restored=takeback(run,history)!;expect(restored.run.captures).toBe(0);expect(restored.run.positions.a1).toBe('a1');expect(getChess(restored.run).get('a3')?.color).toBe('b');expect(getChess(restored.run).isCheck()).toBe(false);
   });
 });

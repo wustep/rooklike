@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { PieceSymbol, Square } from 'chess.js';
-import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coins, Crown, Eye, EyeOff, Flag, Gem, Heart, Leaf, RotateCcw, Shield, Skull, Sparkles, Swords, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coins, Crown, Eye, EyeOff, Flag, Gem, Heart, RotateCcw, Shield, Skull, Sparkles, Swords, Volume2, VolumeX, X } from 'lucide-react';
 import { legalMoves } from './rules';
 import { Piece } from './Piece';
-import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, DIFFICULTY_LABELS, type Run, type Difficulty } from './game';
+import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, rememberTurn, takeback, DIFFICULTY_LABELS, type Run, type Difficulty } from './game';
 
 function sound(capture=false) {try {const ctx=new AudioContext(); const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.setValueAtTime(capture?260:440,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(capture?90:220,ctx.currentTime+.13);gain.gain.setValueAtTime(.06,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.start();osc.stop(ctx.currentTime+.18);osc.onended=()=>void ctx.close();}catch{/* Audio is optional. */}}
 const FILES='abcdefgh';
@@ -18,7 +18,7 @@ export default function App() {
   const [muted,setMuted]=useState(true);
   const [hint,setHint]=useState<{from:Square;to:Square;text:string}|null>(null);
   const [promotion,setPromotion]=useState<{from:Square;to:Square}|null>(null);
-  const [lastTurn,setLastTurn]=useState<Run|null>(null);
+  const [history,setHistory]=useState<Run[]>([]);
   const rewardChosen=run.rewardClaimed;
   const [studying,setStudying]=useState(false);
   const [notice,setNotice]=useState('');
@@ -39,15 +39,14 @@ export default function App() {
   const routeMap=ENCOUNTERS.map((_,i)=>encounterFor(i,run.seed));
   const bonus=bonusState(run);
   const synergies=armySynergies(run);
-  const finalStage=run.stage===ENCOUNTERS.length-1;
   const pressure=`ACT ${act.numeral} · ${act.name.toUpperCase()}`;
+  const canUndo=!!takeback(run,history);
   const thinking=run.phase==='battle'&&chess.turn()==='b';
   const moveFrom=drag?.from??selected;
   const legal=useMemo(()=>moveFrom&&chess.turn()==='w'&&run.phase==='battle'?legalMoves(chess,moveFrom):[],[chess,moveFrom,run.phase]);
   const riskySquares=useMemo(()=>{const probe=getChess(run);const squares=new Set<Square>();for(const candidate of legal){probe.move(candidate);if(probe.isAttacked(candidate.to,'b'))squares.add(candidate.to);probe.undo();}return squares;},[run,legal]);
   const inspectedSquare=selected??(hovered&&chess.get(hovered)?hovered:null);
   const inspected=inspectedSquare?chess.get(inspectedSquare):null;
-  const elitePiece=run.elite?chess.get(run.elite):null;
   const lastMove=chess.history({verbose:true}).at(-1);
   const checkedKing=chess.isCheck()?chess.board().flat().find(p=>p?.type==='k'&&p.color===chess.turn())?.square:null;
 
@@ -62,10 +61,13 @@ export default function App() {
   },[thinking,run,intro,help,restart]);
   useEffect(()=>{if(notice){const t=setTimeout(()=>setNotice(''),4000);return()=>clearTimeout(t);}},[notice]);
 
-  function undo() {if(!lastTurn||run.charges<1||!['battle','defeat','draw'].includes(run.phase))return;setStudying(false);setRun({...lastTurn,charges:run.charges-1,battleUndos:run.battleUndos+1});setLastTurn(null);setSelected(null);setHint(null);setDrag(null);setNotice('Takeback used.');}
+  function undo() {
+    const next=takeback(run,history);if(!next)return;
+    setStudying(false);setRun(next.run);setHistory(next.history);setSelected(null);setHint(null);setDrag(null);setNotice(next.history.length?'Takeback. You can rewind further.':'Takeback used.');
+  }
   function move(from:Square,to:Square,promote?:string) {
     if(thinking||run.phase!=='battle') return;
-    setLastTurn(run);const next=playMove(run,{from,to,promotion:promote});setRun(next);setSelected(null);setHint(null);setPromotion(null);setDrag(null);
+    setHistory(current=>rememberTurn(current,run));const next=playMove(run,{from,to,promotion:promote});setRun(next);setSelected(null);setHint(null);setPromotion(null);setDrag(null);
     if(!muted)sound(!!chess.get(to));
   }
   function selectSquare(sq:Square) {
@@ -119,7 +121,7 @@ export default function App() {
     }
     window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
   });
-  function reset(seed?:number) {setRun(newRun(run.difficulty,seed));setRestart(false);setSelected(null);setHint(null);setLastTurn(null);setStudying(false);setDrag(null);}
+  function reset(seed?:number) {setRun(newRun(run.difficulty,seed));setRestart(false);setSelected(null);setHint(null);setHistory([]);setStudying(false);setDrag(null);}
   function start() {setIntro(false);try{localStorage.setItem('rooklike-welcomed','1');}catch{/* Optional. */}}
   function buy(type:PieceSymbol,cost:number) {const next=recruit(run,type,cost);if(next===run){setNotice('Cannot recruit.');return;}setRun(next);setNotice(`${NAMES[type]} joined.`);}
   const modalOpen=intro||help||restart||!!promotion||(run.phase!=='battle'&&!studying);
@@ -128,27 +130,29 @@ export default function App() {
     <div className="ambient" aria-hidden="true"><i/><i/><i/></div>
     <div className="game-shell" inert={modalOpen}>
     <header className="topbar">
-      <a className="brand" href="#" onClick={e=>{e.preventDefault();setRestart(true);}} aria-label="Rooklike, start a new journey"><span className="brand-icon"><Piece type="r" small/></span>ROOKLIKE<span className="brand-dot">◆</span></a>
-      <div className="chapter"><span>THE HOLLOW CROWN</span><span className="pill">ACT {act.numeral} / III</span></div>
-      <div className="header-actions"><span className="save-label"><span className="status-dot"/>{saveError?'Save unavailable':'Saved'}</span><button className="icon-button" title={muted?'Enable sound':'Mute sound'} aria-label={muted?'Enable sound':'Mute sound'} onClick={()=>setMuted(!muted)}>{muted?<VolumeX size={18}/>:<Volume2 size={18}/>}</button><button className="icon-button" title="How to play (?)" aria-label="How to play" onClick={()=>setHelp(true)}><CircleHelp size={19}/></button></div>
+      <a className="brand" href="#" onClick={e=>{e.preventDefault();setRestart(true);}} aria-label="Rooklike, start a new journey"><span className="brand-icon"><Piece type="r" small/></span>ROOKLIKE</a>
+      <div className="chapter"><span className="pill">ACT {act.numeral} / III</span><span className="stage-count">{String(run.stage+1).padStart(2,'0')} / {ENCOUNTERS.length}</span></div>
+      <div className="header-actions">
+        <span className="purse" title="Crowns"><Coins size={14}/>{run.coins}</span>
+        <label className="difficulty compact"><select aria-label="Difficulty" value={run.difficulty} onChange={e=>setRun({...run,difficulty:e.target.value as Difficulty})}><option value="wanderer">{DIFFICULTY_LABELS.wanderer}</option><option value="tactician">{DIFFICULTY_LABELS.tactician}</option></select></label>
+        {saveError&&<span className="save-label">Save unavailable</span>}
+        <button className="icon-button" title={muted?'Enable sound':'Mute sound'} aria-label={muted?'Enable sound':'Mute sound'} onClick={()=>setMuted(!muted)}>{muted?<VolumeX size={18}/>:<Volume2 size={18}/>}</button>
+        <button className="icon-button" title="How to play (?)" aria-label="How to play" onClick={()=>setHelp(true)}><CircleHelp size={19}/></button>
+      </div>
     </header>
     {studying&&<div className="study-banner">Final position · {run.phase}<button onClick={()=>reset()}>New journey</button></div>}
     <div className="layout">
       <aside className="left-panel">
-        <div className="act-heading"><span className="eyebrow">YOUR JOURNEY</span><h2>{act.name}.</h2><p>{act.description}</p><span className="road-seed">ROAD {run.seed.toString(36).toUpperCase()}</span></div>
-        <nav className="journey-map" aria-label="Campaign progress">{routeMap.map((e,i)=><div className={`map-stop ${Math.floor(i/4)!==Math.floor(run.stage/4)?'other-act':''} ${i===run.stage?'current':''} ${i<run.stage?'completed':''}`} key={e.name}><div className="map-node">{i<run.stage?<Check size={15}/>:i===ENCOUNTERS.length-1?<Crown size={17}/>:i===run.stage?<Swords size={16}/>:<span/>}</div><div><span className="map-kicker">{i===ENCOUNTERS.length-1?'THE BOSS':`ACT ${ACTS[Math.floor(i/4)].numeral} · ${String(i+1).padStart(2,'0')}`}</span><strong>{e.name.replace('The ','')}</strong>{i===run.stage&&<span className="you-are-here">You are here <ArrowRight size={12}/></span>}</div></div>)}</nav>
-        <div className="company"><div className="section-label"><span>YOUR COMPANY</span><span>{run.army.length} / 12</span></div><div className="army-pieces">{run.army.map(unit=><span title={`${NAMES[unit.type]}${unit.type==='k'?' · Protect':` · ${VALUES[unit.type]}`}`} key={unit.id}><Piece type={unit.type} small/></span>)}</div>{synergies.map(text=><div className="synergy-line" key={text}><Sparkles size={12}/>{text}</div>)}</div>
-        <div className="relics"><div className="section-label"><span>RELICS</span><Gem size={13}/></div>{run.relics.length?run.relics.map(r=><div className="relic-item" key={r} title={RELICS[r].description}><Sparkles size={15}/><span>{RELICS[r].name}</span></div>):<p className="empty-relic">None yet.</p>}</div>
-        <button className="quiet-button abandon" onClick={()=>setRestart(true)}><RotateCcw size={14}/> New journey</button>
+        <nav className="journey-dots" aria-label="Campaign progress">{routeMap.map((e,i)=><span className={`dot ${i===run.stage?'current':''} ${i<run.stage?'completed':''}`} title={e.name} key={e.name}/>)}</nav>
+        <div className="army-pieces">{run.army.map(unit=><span title={`${NAMES[unit.type]}${unit.type==='k'?' · Protect':` · ${VALUES[unit.type]}`}`} key={unit.id}><Piece type={unit.type} small/></span>)}</div>
+        {run.relics.length>0&&<div className="relics">{run.relics.map(r=><span className="relic-item" key={r} title={`${RELICS[r].name}: ${RELICS[r].description}`}><Sparkles size={13}/></span>)}</div>}
+        <button className="quiet-button abandon" onClick={()=>setRestart(true)}>New journey</button>
       </aside>
       <main className="battle-panel">
-        <div className="encounter-heading"><div className="location"><Leaf size={13}/><span>{encounter.place}</span><span className="location-line"/><span>{String(run.stage+1).padStart(2,'0')} / {ENCOUNTERS.length}</span></div><h1>{encounter.name}</h1><p>{encounter.description}</p></div>
-        <div className="run-strip"><span>{pressure}</span><span className={run.route==='danger'?'danger-label':''}>{run.route==='danger'?'DANGEROUS ROAD · +20':'SHELTERED ROAD'}</span></div>
-        <div className="mobile-company"><span><Shield size={12}/> {run.army.length} allies</span><span><Coins size={12}/> {run.coins}</span><span><Gem size={12}/> {run.relics.length} relics</span></div>
-        <div className={`turn-bar ${chess.isCheck()?'check-bar':''}`}><div><span className={`turn-indicator ${thinking?'thinking':''}`}/><strong>{chess.isCheck()?(thinking?'Enemy king in check':'Check'):thinking?'Enemy thinking…':'Your move'}</strong><span className="turn-detail">{chess.isCheck()?'Answer the check.':thinking?'Watch the board.':'Drag or click a piece.'}</span></div><span className="turn-count">TURN {Math.floor(run.moves.length/2)+1}</span></div>
+        <div className="encounter-heading"><h1>{encounter.name}</h1></div>
+        <div className={`turn-bar ${chess.isCheck()?'check-bar':''}`}><div><span className={`turn-indicator ${thinking?'thinking':''}`}/><strong>{chess.isCheck()?(thinking?'Enemy king in check':'Check'):thinking?'Enemy thinking…':'Your move'}</strong></div><span className="turn-count">{Math.floor(run.moves.length/2)+1}</span></div>
         <div className={`board-scene ${lastMove?.captured?'capture-scene':''}`}>
           {lastMove?.captured&&<div key={`${run.stage}-${run.moves.length}`} className={`capture-feedback ${lastMove.color==='b'?'ally-lost':''}`} role="status">{lastMove.color==='w'?`${NAMES[lastMove.captured]} captured`:`${NAMES[lastMove.captured]} lost`}</div>}
-          <div className="scene-ornament ornament-left" aria-hidden="true">✦</div><div className="scene-ornament ornament-right" aria-hidden="true">✦</div>
           <div className="board-frame">
             <div className="rank-labels" aria-hidden="true">{[8,7,6,5,4,3,2,1].map(r=><span key={r}>{r}</span>)}</div>
             <div className={`chessboard${drag?' is-dragging':''}`} role="group" aria-label="Chessboard. You play ivory. Drag or click a piece to move. Arrow keys navigate; Enter selects.">{Array.from({length:64},(_,i)=>{
@@ -168,25 +172,22 @@ export default function App() {
             <div className="file-labels" aria-hidden="true">{[...FILES].map(f=><span key={f}>{f}</span>)}</div>
           </div>
         </div>
-        <div className="passage-bonus"><div><Zap size={14}/><strong>Swift passage</strong><span>{bonus.available ? `Win by turn ${bonus.par} · +12` : 'Bonus expired.'}</span></div><div className="bonus-track"><span style={{width:`${Math.max(0,1-Math.ceil(run.moves.length/2)/bonus.par)*100}%`}}/></div></div>
-        <div className="board-footer"><span><span className="ivory-dot"/> IVORY</span><span><Crown size={12}/> CAPTURE THE CAPTAIN</span></div>
-        <div className="board-tools"><button className={threats?'tool active':'tool'} onClick={()=>setThreats(!threats)} aria-pressed={threats}>{threats?<Eye size={16}/>:<EyeOff size={16}/>} Threat vision <kbd>H</kbd></button><button className="tool" onClick={undo} disabled={!lastTurn||!run.charges||run.phase!=='battle'}><RotateCcw size={15}/> Takeback <span className="charge-count">{run.charges}</span><kbd>U</kbd></button>{run.relics.includes('compass')&&<button className="tool" onClick={showHint} disabled={thinking||run.phase!=='battle'}><Sparkles size={15}/> Hint</button>}<button className="tool journal-tool" onClick={()=>setJournal(!journal)} aria-expanded={journal}><BookOpen size={15}/><span>Move journal</span><ChevronDown size={12}/></button></div>
+        <div className="passage-bonus" title={bonus.available?`Swift passage by turn ${bonus.par}`:'Swift passage expired'}><div className="bonus-track"><span style={{width:`${Math.max(0,1-Math.ceil(run.moves.length/2)/bonus.par)*100}%`}}/></div></div>
+        <div className="board-tools">
+          <button className={threats?'tool active':'tool'} onClick={()=>setThreats(!threats)} aria-pressed={threats}>{threats?<Eye size={16}/>:<EyeOff size={16}/>} Threats <kbd>H</kbd></button>
+          <button className="tool" onClick={undo} disabled={!canUndo||(run.phase!=='battle'&&run.phase!=='defeat'&&run.phase!=='draw')}><RotateCcw size={15}/> Takeback <span className="charge-count">{run.charges}</span><kbd>U</kbd></button>
+          {run.relics.includes('compass')&&<button className="tool" onClick={showHint} disabled={thinking||run.phase!=='battle'}><Sparkles size={15}/> Hint</button>}
+          <button className="tool journal-tool" onClick={()=>setJournal(!journal)} aria-expanded={journal} aria-label="Move journal"><BookOpen size={15}/></button>
+        </div>
         {hint&&<div className="hint-message"><Sparkles size={16}/><span><strong>{hint.from} → {hint.to}.</strong> {hint.text}</span></div>}
         {journal&&<div className="journal"><div className="section-label">JOURNAL <button className="icon-button" aria-label="Close journal" onClick={()=>setJournal(false)}><X size={14}/></button></div><div>{run.log.map((entry,i)=><span key={i}>{entry}</span>)}</div></div>}
-        <div className="position-read" role="status"><BookOpen size={15}/><p>{tacticalRead(chess,selected??inspectedSquare)}</p></div><div className="keyboard-note">● Legal <span className="risk-key">◉ Attacked</span><span>Drag or click to move.</span></div>
+        {selected&&inspected&&<div className="inspect"><h3>{inspectedSquare===run.elite?encounter.enemy:NAMES[inspected.type]}</h3><div className="position-read" role="status"><p>{tacticalRead(chess,selected)}</p></div></div>}
       </main>
-      <aside className="right-panel">
-        <div className="treasury"><div><Coins size={20}/><strong>{run.coins}</strong><span>crowns</span></div><span title="Encounter reward">+{encounter.bounty} victory</span></div>
-        <section className="objective-card"><div className="section-label"><span>OBJECTIVE</span><Flag size={14}/></div><h3>{finalStage?'Break the crown.':'Break the guard.'}</h3><p>Capture the marked {elitePiece?NAMES[elitePiece.type].toLowerCase():'captain'} or checkmate.</p><div className="king-reminder"><Shield size={15}/><span>Your king must survive.</span></div></section>
-        <section className="enemy-card"><div className="section-label"><span>{inspected&&inspected.color==='w'?'YOUR PIECE':'ENEMY'}</span><span className="tiny-diamond">◆</span></div>{inspected&&inspected.color==='w'?<><div className="enemy-portrait ally-portrait"><Piece type={inspected.type}/><span className="portrait-rings"/></div><div className="enemy-title"><h3>{NAMES[inspected.type]}</h3><span className="enemy-tag">COMPANY · {inspectedSquare?.toUpperCase()}</span></div><p>{RULES[inspected.type]}</p><div className="ability"><BookOpen size={15}/><div><strong>{inspected.type==='k'?'The heart of the army':`${VALUES[inspected.type]} material`}</strong><p>{inspected.type==='k'?'Check is a threat. Checkmate ends the run.':'Highlighted moves keep your king safe.'}</p></div></div></>:<><div className="enemy-portrait"><Piece type={inspected?.type??elitePiece?.type??'r'} color="b" variant={!inspected||inspectedSquare===run.elite?encounter.theme:undefined}/><span className="portrait-rings"/><span className="portrait-star">✧</span></div><div className="enemy-title"><h3>{inspected&&inspectedSquare!==run.elite?`Hollow ${NAMES[inspected.type]}`:encounter.enemy}</h3><span className="enemy-tag">{inspected&&inspectedSquare!==run.elite?'PIECE':'CAPTAIN'} · {(inspectedSquare&&inspected?inspectedSquare:run.elite)?.toUpperCase()}</span></div><p>{RULES[inspected?.type??elitePiece?.type??'r']}</p><div className="ability"><Zap size={15}/><div><strong>{inspected&&inspectedSquare!==run.elite?'Chess piece':encounter.power}</strong><p>{inspected&&inspectedSquare!==run.elite?'No special ability. Watch what it defends.':encounter.ability}</p></div></div></>}</section>
-        <section className="coach-card"><div className="section-label"><span><BookOpen size={13}/> LOOK FOR</span></div><p>{threats?'Red dots: squares the enemy attacks.':encounter.lesson}</p></section>
-        <div className="difficulty-note">{run.stage===0?'First fight. Learn the shapes.':run.stage<4?'Act I. Forks and pins, not a full hunt.':'The guard looks ahead.'}</div><label className="difficulty"><span>Difficulty<small>How far the enemy looks ahead</small></span><select aria-label="Difficulty" value={run.difficulty} onChange={e=>setRun({...run,difficulty:e.target.value as Difficulty})}><option value="wanderer">{DIFFICULTY_LABELS.wanderer}</option><option value="tactician">{DIFFICULTY_LABELS.tactician}</option></select></label>
-      </aside>
-    </div><footer className="page-footer"><span>THINK AHEAD.</span><span>CHESS RULES.</span></footer>
+    </div>
     </div>
     {notice&&<div className="toast" role="status">{notice}</div>}
     {intro&&<Modal label="Welcome to Rooklike" className="intro-modal"><div className="intro-emblem"><Piece type="k"/></div><span className="eyebrow">A CHESS ROGUELIKE</span><h2>Every king needs<br/>a little company.</h2><p>Think in chess. Grow your company. Reclaim the Hollow Crown.</p><div className="intro-rules"><span><Shield size={18}/><strong>Protect your king</strong><small>Real checks. Real legal moves.</small></span><span><Crown size={18}/><strong>Hunt the captain</strong><small>Capture the marked enemy.</small></span><span><Gem size={18}/><strong>Build your company</strong><small>Recruit pieces. Collect relics.</small></span></div><button className="primary-button" onClick={start}>Begin your journey <ArrowRight size={18}/></button><span className="modal-footnote">3 ACTS · 12 ENCOUNTERS · SAVES AS YOU PLAY</span></Modal>}
-    {help&&!intro&&<Modal label="How to play"><button className="modal-close icon-button" onClick={()=>setHelp(false)} aria-label="Close help"><X/></button><span className="eyebrow">FIELD GUIDE</span><h2>Chess, with a journey.</h2><p>You play ivory. Drag or click a piece to a highlighted square. One legal move each.</p><div className="help-grid"><div><Shield/><h3>King is sacred</h3><p>Never leave your king in check. Capture, block, or move. Checkmate ends the run.</p></div><div><Crown/><h3>Hunt the crown</h3><p>Capture the marked captain or checkmate to win. You do not need every piece.</p></div><div><Heart/><h3>Keep your company</h3><p>Lost allies stay lost. Survivors redeploy. One free gift, then recruits. Max 12.</p></div><div><Eye/><h3>Learn by looking</h3><p>Select a piece for its moves. H shows threats. U undoes your move and the reply.</p></div></div><p className="help-fine">Pawns promote on rank 8. Castling and en passant work. Draws end the run. Monster abilities change rewards, not movement. Sheltered road: +1 Takeback. Dangerous road: extra guard, +20. Swift passage: +12 if you beat the turn target.</p><div className="help-shortcuts"><span><kbd>↑ ↓ ← →</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span><kbd>H</kbd> Threats</span><span><kbd>U</kbd> Takeback</span><span><kbd>Esc</kbd> Cancel</span></div><button className="primary-button" onClick={()=>setHelp(false)}>Back to the board <ArrowRight size={16}/></button></Modal>}
+    {help&&!intro&&<Modal label="How to play"><button className="modal-close icon-button" onClick={()=>setHelp(false)} aria-label="Close help"><X/></button><span className="eyebrow">FIELD GUIDE</span><h2>Chess, with a journey.</h2><p>You play ivory. Drag or click a piece to a highlighted square. One legal move each.</p><div className="help-grid"><div><Shield/><h3>King is sacred</h3><p>Never leave your king in check. Capture, block, or move. Checkmate ends the run.</p></div><div><Crown/><h3>Hunt the crown</h3><p>Capture the marked captain or checkmate to win. You do not need every piece.</p></div><div><Heart/><h3>Keep your company</h3><p>Lost allies stay lost. Survivors redeploy. One free gift, then recruits. Max 12.</p></div><div><Eye/><h3>Learn by looking</h3><p>Select a piece for its moves. H shows threats. U undoes a turn; press again to rewind further.</p></div></div><p className="help-fine">Pawns promote on rank 8. Castling and en passant work. Draws end the run. Monster abilities change rewards, not movement. Sheltered road: +1 Takeback. Dangerous road: extra guard, +20. Swift passage: +12 if you beat the turn target.</p><div className="help-shortcuts"><span><kbd>↑ ↓ ← →</kbd> Navigate</span><span><kbd>Enter</kbd> Select</span><span><kbd>H</kbd> Threats</span><span><kbd>U</kbd> Takeback</span><span><kbd>Esc</kbd> Cancel</span></div><button className="primary-button" onClick={()=>setHelp(false)}>Back to the board <ArrowRight size={16}/></button></Modal>}
     {restart&&!intro&&<Modal label="Start a new journey"><span className="eyebrow">FRESH START</span><h2>Take another road?</h2><p>This replaces your save. Fresh company, two Takebacks. Replay this road or roll a new one.</p><div className="modal-actions"><button className="secondary-button" onClick={()=>reset(run.seed)}>Replay this road</button><button className="secondary-button" onClick={()=>setRestart(false)}>Keep playing</button><button className="primary-button" onClick={()=>reset()}>New journey <ArrowRight size={16}/></button></div></Modal>}
     {promotion&&<Modal label="Choose promotion"><span className="eyebrow">PROMOTION</span><h2>Choose a piece.</h2><p>Your pawn reached the last rank.</p><div className="promotion-options">{(['q','r','b','n'] as PieceSymbol[]).map(type=><button key={type} onClick={()=>move(promotion.from,promotion.to,type)}><Piece type={type}/><strong>{NAMES[type]}</strong></button>)}</div></Modal>}
     {run.phase==='reward'&&!restart&&<Modal label="Encounter won" className="reward-modal">
@@ -200,9 +201,9 @@ export default function App() {
       {campActEnd&&<div className="act-provisions"><span className="eyebrow">{run.provisionClaimed?'PROVISIONS SECURED':'ACT BREAK · CHOOSE ONE'}</span><p>The next road is harder.</p><div><button disabled={run.provisionClaimed||run.army.length>=12} onClick={()=>setRun(claimProvision(run,'rook'))}><Shield size={17}/><strong>A veteran rook</strong><small>One free recruit</small></button><button disabled={run.provisionClaimed} onClick={()=>setRun(claimProvision(run,'gold'))}><Coins size={17}/><strong>The war chest</strong><small>+25 crowns</small></button><button disabled={run.provisionClaimed} onClick={()=>setRun(claimProvision(run,'rest'))}><RotateCcw size={17}/><strong>A night of rest</strong><small>+2 Takebacks</small></button></div></div>}
       <div className="route-heading"><span className="eyebrow">3 · ROAD</span><strong>Next: {routeMap[run.stage+1].name}</strong></div><div className="route-options" role="group" aria-label="Choose your next route"><button className={run.nextRoute==='shelter'?'chosen':''} aria-pressed={run.nextRoute==='shelter'} onClick={()=>setRun({...run,nextRoute:'shelter'})}><Shield size={19}/><span><strong>The sheltered road</strong><small>Normal guard · +1 Takeback</small></span>{run.nextRoute==='shelter'&&<Check size={16}/>}</button><button className={run.nextRoute==='danger'?'chosen dangerous':''} aria-pressed={run.nextRoute==='danger'} onClick={()=>setRun({...run,nextRoute:'danger'})}><Swords size={19}/><span><strong>The dangerous road</strong><small>Extra {run.stage+1<3?'knight':'rook'} on b6 · +20</small></span>{run.nextRoute==='danger'&&<Check size={16}/>}</button></div>
       <p className="next-warning">{routeMap[run.stage+1].enemy} · {routeMap[run.stage+1].lesson}</p>
-      <button className="primary-button wide" disabled={!rewardChosen||(campActEnd&&!run.provisionClaimed)} onClick={()=>{setRun(nextBattle(run));setSelected(null);setHovered(null);setHint(null);setLastTurn(null);setRoster(false);}}>Continue to {routeMap[run.stage+1].place.toLowerCase()} <ArrowRight size={17}/></button>
+      <button className="primary-button wide" disabled={!rewardChosen||(campActEnd&&!run.provisionClaimed)} onClick={()=>{setRun(nextBattle(run));setSelected(null);setHovered(null);setHint(null);setHistory([]);setRoster(false);}}>Continue to {routeMap[run.stage+1].place.toLowerCase()} <ArrowRight size={17}/></button>
     </Modal>}
-    {(run.phase==='victory'||run.phase==='defeat'||run.phase==='draw')&&!restart&&!studying&&<Modal label={run.phase==='victory'?'Campaign complete':'Journey ended'} className="end-modal"><span className={`end-icon ${run.phase}`} >{run.phase==='victory'?<Crown size={48}/>:run.phase==='draw'?<Flag size={48}/>:<Skull size={48}/>}</span><span className="eyebrow">{run.phase==='victory'?'THREE ACTS COMPLETE':run.phase==='draw'?'A DRAW':'THE JOURNEY ENDS'}</span><h2>{run.phase==='victory'?'Long live your company.':run.phase==='draw'?'The road falls quiet.':'A crown in the dust.'}</h2><p>{run.phase==='victory'?'The Hollow Crown is broken. Your company did something rare.':run.phase==='draw'?'A draw ends the journey. Leave the enemy king an escape when you can.':'Checkmate. Develop, watch threats, give the king a safe square.'}</p><div className="end-stats"><span><strong>{run.stage+(run.phase==='victory'?1:0)}</strong>cleared</span><span><strong>{run.captures}</strong>captures</span><span><strong>{run.army.length}</strong>in company</span></div><div className="end-chapter">{pressure} · {DIFFICULTY_LABELS[run.difficulty]}</div>{run.phase!=='victory'&&lastTurn&&run.charges>0&&<button className="secondary-button recover-button" onClick={undo}><RotateCcw size={15}/> Spend a Takeback · try another line</button>}<button className="primary-button" onClick={()=>reset()}>Begin another journey <ArrowRight size={17}/></button><button className="quiet-button" onClick={()=>{setStudying(true);setNotice('Final board opened.');}}>Study the final board <BookOpen size={15}/></button></Modal>}
+    {(run.phase==='victory'||run.phase==='defeat'||run.phase==='draw')&&!restart&&!studying&&<Modal label={run.phase==='victory'?'Campaign complete':'Journey ended'} className="end-modal"><span className={`end-icon ${run.phase}`} >{run.phase==='victory'?<Crown size={48}/>:run.phase==='draw'?<Flag size={48}/>:<Skull size={48}/>}</span><span className="eyebrow">{run.phase==='victory'?'THREE ACTS COMPLETE':run.phase==='draw'?'A DRAW':'THE JOURNEY ENDS'}</span><h2>{run.phase==='victory'?'Long live your company.':run.phase==='draw'?'The road falls quiet.':'A crown in the dust.'}</h2><p>{run.phase==='victory'?'The Hollow Crown is broken. Your company did something rare.':run.phase==='draw'?'A draw ends the journey. Leave the enemy king an escape when you can.':'Checkmate. Develop, watch threats, give the king a safe square.'}</p><div className="end-stats"><span><strong>{run.stage+(run.phase==='victory'?1:0)}</strong>cleared</span><span><strong>{run.captures}</strong>captures</span><span><strong>{run.army.length}</strong>in company</span></div><div className="end-chapter">{pressure} · {DIFFICULTY_LABELS[run.difficulty]}</div>{run.phase!=='victory'&&canUndo&&<button className="secondary-button recover-button" onClick={undo}><RotateCcw size={15}/> Spend a Takeback · try another line</button>}<button className="primary-button" onClick={()=>reset()}>Begin another journey <ArrowRight size={17}/></button><button className="quiet-button" onClick={()=>{setStudying(true);setNotice('Final board opened.');}}>Study the final board <BookOpen size={15}/></button></Modal>}
   </div>;
 }
 function Modal({children,label,className=''}:{children:React.ReactNode;label:string;className?:string}) {

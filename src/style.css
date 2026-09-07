@@ -59,6 +59,44 @@
 .drag-ghost{position:fixed;z-index:80;width:72px;height:80px;pointer-events:none;transform:translate(-50%,-70%);filter:drop-shadow(3px 10px 8px #0b180c88)}
 .drag-ghost .piece{width:100%;height:100%}
 @media(prefers-reduced-motion:reduce){.drag-ghost{filter:none}}
+/* Quiet, board-first HUD. Side essays, slogans, and coach chrome stay out of the fight. */
+.topbar{height:64px;margin:0 28px;gap:18px}
+.brand{font-size:18px;letter-spacing:2px}
+.brand-dot{display:none}
+.chapter{gap:10px}
+.stage-count{font-size:10px;letter-spacing:1.2px;color:#8d988d}
+.purse{display:inline-flex;align-items:center;gap:6px;color:var(--gold);font-size:13px;font-weight:500}
+.difficulty.compact{border:0;margin:0;padding:0}
+.difficulty.compact select{padding:4px 6px;font-size:11px}
+.layout{display:flex;flex-direction:column;align-items:center;max-width:640px;margin:0 auto;gap:14px;padding:16px 24px 40px;grid-template-columns:none}
+.left-panel{display:flex;align-items:center;gap:14px;width:100%;padding:0}
+.journey-dots{display:flex;flex-wrap:wrap;gap:6px}
+.journey-dots .dot{width:7px;height:7px;border-radius:50%;background:#ffffff1c}
+.journey-dots .dot.completed{background:#9caf7e}
+.journey-dots .dot.current{background:var(--accent);box-shadow:0 0 0 3px #c2d69b24}
+.left-panel .army-pieces{margin-left:auto;margin:0 0 0 auto}
+.left-panel .relics{display:flex;gap:4px;margin:0}
+.left-panel .relic-item{margin:0;color:#b8c795}
+.abandon{margin:0;padding:6px 0;font-size:10px}
+.battle-panel{width:100%;max-width:620px;justify-self:stretch}
+.encounter-heading{text-align:center;margin:0 0 8px}
+.encounter-heading h1{font-size:clamp(20px,2.4vw,28px);margin:0;letter-spacing:-.6px;line-height:1.2}
+.turn-bar{padding:8px 12px;min-height:0;margin:0}
+.turn-count{font-size:10px;letter-spacing:.8px}
+.board-scene{padding:12px 0 0}
+.passage-bonus{margin:10px 4px 0}
+.passage-bonus .bonus-track{margin-top:0}
+.board-tools{padding-top:12px;margin-top:2px}
+.inspect{text-align:center;margin:10px 4px 0}
+.inspect h3{font-family:inherit;font-size:13px;font-weight:500;color:#d8dec8}
+.inspect .position-read{min-height:0;margin:4px 0 0;padding:0;border:0;background:none;justify-content:center}
+.inspect .position-read p{font-size:11px;color:#9aa78e;line-height:1.55}
+.page-footer,.run-strip,.mobile-company,.board-footer,.keyboard-note,.coach-card,.objective-card,.enemy-card,.treasury,.act-heading,.journey-map,.difficulty-note,.scene-ornament{display:none!important}
+@media(min-width:981px){.layout{grid-template-columns:none;gap:14px;padding:16px 24px 40px}.battle-panel{max-width:620px}.left-panel{display:flex}}
+@media(min-width:1450px){.layout{grid-template-columns:none;gap:14px;padding-top:16px}.topbar{height:64px}}
+@media(min-width:981px) and (max-height:1000px){.topbar{height:58px}.layout{padding-top:12px}.battle-panel{max-width:min(620px,calc(100dvh - 220px))}.encounter-heading{margin-bottom:6px}.encounter-heading h1{font-size:22px}.board-scene{padding-top:8px}}
+@media(max-width:980px){.left-panel{display:flex}.layout{grid-template-columns:none;padding:16px 20px 32px}.chapter{margin-left:0}.header-actions{margin-left:auto}}
+@media(max-width:720px){.layout{display:flex;flex-direction:column;padding:14px 14px 28px;gap:12px}.topbar{height:58px;margin:0 14px}.left-panel{flex-wrap:wrap;gap:8px}.left-panel .army-pieces{width:100%;margin:0}.abandon{margin-left:auto}.encounter-heading h1{font-size:22px}.right-panel{display:none}}
 
 .reward-options:has(.packed){grid-template-columns:1fr}.reward-options:has(.packed) .reward-choice:not(.packed){display:none}.reward-choice.packed{display:grid;grid-template-columns:35px 1fr auto;align-items:center;gap:0 12px;min-height:0;padding:12px 15px}.reward-choice.packed>strong{margin:0}.reward-choice.packed>p{grid-column:2/4;margin:4px 0 0}.reward-choice.packed>.piece,.reward-choice.packed>.reward-icon{grid-column:1;grid-row:1/3;margin:0}.reward-choice.packed>span:last-child{grid-column:3;grid-row:1;width:auto}.reward-choice.packed>span:last-child svg{display:none}
 .capture-feedback{position:absolute;top:20px;left:50%;translate:-50% 0;padding:9px 15px;background:#283c2bf2;border:1px solid #cbdea26b;color:#e1ebc6;border-radius:5px;font-size:11px;box-shadow:0 7px 20px #0004;pointer-events:none;z-index:6;white-space:nowrap;animation:capture-note 1.8s both}.capture-feedback.ally-lost{background:#4a2925f2;color:#f1c2a4;border-color:#ee9d7066}@keyframes capture-note{0%{opacity:0;transform:translateY(8px)}15%,70%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8px)}}

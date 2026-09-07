@@ -33,10 +33,10 @@ The production preview opens at **http://localhost:4173**.
 - Pawns move toward rank 8 and choose queen, rook, bishop, or knight on promotion. Castling and en passant work under standard chess rules. Each encounter begins with a fresh deployment and corresponding castling rights.
 - Monster effects are explicitly described in the field guide. The Mire Rider steals crowns when it captures; the Lantern Keeper restores a Takeback when defeated. Their movement and captures remain standard chess.
 - Eleven relics support Takebacks, victory income, suggested moves, knight captures, surviving bishops on both colors, pawn promotion, and castling. They never change how a piece moves.
-- `H`: enemy threat vision. `U`: spend a Takeback to rewind your move and the enemy reply. Arrow keys: board navigation. Enter/Space: select or move. `?`: field guide. Escape: close or deselect.
+- `H`: enemy threat vision. `U`: spend a Takeback to rewind your last turn (your move and the reply). Press again to rewind further through this fight. Arrow keys: board navigation. Enter/Space: select or move. `?`: field guide. Escape: close or deselect.
 - **Easy** starts with a gentle opening and ramps toward four-ply search; **Hard** looks one ply further. Each encounter has its own depth, position budget, and capture-extension settings in `src/engine.ts`. Iterative deepening, alpha-beta pruning, transposition caching, move ordering, and quiescence search preserve the last completed depth within the budget. Actual completed depth depends on the position. Captains are explicit search objectives, including when they move. Enemy thinking runs in a Web Worker.
 
-Takeback history lasts until the page reloads or the next encounter starts; remaining charges and campaign progress are saved. The final board can be opened for study after a win, defeat, or draw.
+Takeback keeps a stack of this fight’s turns. Each charge rewinds one full turn; remaining charges let you chain further back until the opening of the encounter. History clears on reload or when the next encounter starts; remaining charges and campaign progress are saved. The final board can be opened for study after a win, defeat, or draw.
 
 ## Rules invariants
 
