@@ -16,23 +16,30 @@ test('a relic choice, roster change and dangerous road persist and deploy on mob
   await page.reload();
   await expect(page.locator('.reward-choice.packed')).toContainText('Forked Spurs');
   await expect(page.getByRole('button',{name:/The dangerous road/})).toHaveAttribute('aria-pressed','true');
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.getByRole('button',{name:/Continue to/}).click();
   await expect(page.locator('[data-square="b6"]')).toHaveAttribute('aria-label',/enemy Knight/);
   const run:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));
   expect(run.coins).toBe(51);expect(run.charges).toBe(2);expect(run.army.filter(u=>u.type==='n')).toHaveLength(2);expect(run.relics).toContain('spurs');
 });
 test('enemy inspection traces attacks and changes the position read',async({page})=>{
-  await seed(page,newRun());await page.locator('[data-square="d5"]').click();
+  await seed(page,newRun());
+  const before=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,board:document.querySelector('.board-frame')!.getBoundingClientRect().left}));
+  await page.locator('[data-square="d5"]').click();
   await expect(page.locator('[data-square="d4"]')).toHaveClass(/enemy-reach/);
   await expect(page.locator('.position-read')).toContainText('Rook on d5');
   await expect(page.getByRole('heading',{name:'Briar Sentinel'})).toBeVisible();
+  const after=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,board:document.querySelector('.board-frame')!.getBoundingClientRect().left}));
+  expect(after.client).toBe(before.client);expect(after.scroll).toBe(before.scroll);expect(after.board).toBe(before.board);
   await page.locator('[data-square="b1"]').click();
   await expect(page.locator('.enemy-reach')).toHaveCount(0);await expect(page.locator('[data-square="c3"]')).toHaveClass(/legal/);
 });
 test('a remaining Takeback can rescue the last turn after checkmate',async({page})=>{
   const run={...newRun(),initialFen:'8/1b6/8/8/5kq1/8/6PP/R6K w - - 0 1',elite:'g4' as const,positions:{a1:'rook',h1:'king',g2:'pawn1',h2:'pawn2'},army:[{id:'rook',type:'r' as const},{id:'king',type:'k' as const},{id:'pawn1',type:'p' as const},{id:'pawn2',type:'p' as const}]};
   await seed(page,run);await page.locator('[data-square="a1"]').click();await page.locator('[data-square="b1"]').click();
+  await expect(page.locator('.board-scene')).toHaveClass(/result-hold/);
+  await expect(page.locator('.king-check')).toHaveCount(1);
+  await expect(page.getByRole('dialog',{name:'Journey ended'})).toHaveCount(0);
   await expect(page.getByRole('dialog',{name:'Journey ended'})).toBeVisible();
   await page.getByRole('button',{name:/Spend a Takeback/}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-square="a1"]')).toHaveAttribute('aria-label',/your Rook/);await expect(page.locator('[data-square="g2"]')).toHaveAttribute('aria-label',/your Pawn/);

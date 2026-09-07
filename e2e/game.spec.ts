@@ -65,6 +65,9 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
   let run=newRun();run.initialFen='7k/8/8/8/8/r7/8/R3K3 w - - 0 1';run.elite='a3';run.positions={a1:'rook',e1:'king'};run.army=[{id:'king',type:'k'},{id:'rook',type:'r'}];
   await page.addInitScript(({run,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
   await page.locator('[data-square="a1"]').click();await page.locator('[data-square="a3"]').click();
+  await expect(page.locator('.board-scene')).toHaveClass(/result-hold/);
+  await expect(page.locator('[data-square="a3"]')).toHaveClass(/last-move/);
+  await expect(page.getByRole('dialog',{name:'Encounter won'})).toHaveCount(0);
   await expect(page.getByRole('dialog',{name:'Encounter won'})).toBeVisible();
   await page.getByRole('button',{name:/A willing knight/}).click();
   await page.reload();await expect(page.getByRole('button',{name:/A willing knight/})).toBeDisabled();
@@ -84,7 +87,7 @@ test('promotion choice can cause a material draw; final board remains ended',asy
 
 test('mobile: board fits and controls stay usable',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'Begin your journey'}).click();
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.locator('[data-square="b1"]').click();await page.screenshot({path:'artifacts/mobile.png',fullPage:true});await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   await page.getByRole('button',{name:/Threats/}).click();await expect(page.locator('.threat-dot').first()).toBeVisible();
