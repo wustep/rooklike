@@ -4,7 +4,7 @@ import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coi
 import { legalMoves } from './rules';
 import type { SearchProfile } from './engine';
 import { Piece } from './Piece';
-import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, rememberTurn, takeback, DIFFICULTY_LABELS, formatSeed, parseSeed, type Run, type Difficulty } from './game';
+import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, hangingSquares, rememberTurn, takeback, DIFFICULTY_LABELS, formatSeed, parseSeed, type Run, type Difficulty } from './game';
 
 function sound(capture=false) {try {const ctx=new AudioContext(); const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.setValueAtTime(capture?260:440,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(capture?90:220,ctx.currentTime+.13);gain.gain.setValueAtTime(.06,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.start();osc.stop(ctx.currentTime+.18);osc.onended=()=>void ctx.close();}catch{/* Audio is optional. */}}
 const FILES='abcdefgh';
@@ -51,6 +51,7 @@ export default function App() {
   const moveFrom=drag?.from??selected;
   const legal=useMemo(()=>moveFrom&&chess.turn()==='w'&&run.phase==='battle'?legalMoves(chess,moveFrom):[],[chess,moveFrom,run.phase]);
   const riskySquares=useMemo(()=>{const probe=getChess(run);const squares=new Set<Square>();for(const candidate of legal){probe.move(candidate);if(probe.isAttacked(candidate.to,'b'))squares.add(candidate.to);probe.undo();}return squares;},[run,legal]);
+  const hanging=useMemo(()=>threats?hangingSquares(chess):new Set<Square>(),[chess,threats]);
   const inspected=selected?chess.get(selected):null;
   const lastMove=chess.history({verbose:true}).at(-1);
   const checkedKing=chess.isCheck()?chess.board().flat().find(p=>p?.type==='k'&&p.color===chess.turn())?.square:null;
@@ -121,7 +122,7 @@ export default function App() {
     if(candidate){if(candidate.promotion)setPromotion({from:current.from,to:candidate.to});else move(current.from,candidate.to);}
     else if(current.active||current.already){setSelected(null);setHovered(null);}
   }
-  function showHint() {const m=chooseMove(chess,'tactician',run.elite);if(m){setHint({from:m.from,to:m.to,text:hintFor(m)});setSelected(m.from);}}
+  function showHint() {const m=chooseMove(chess,'tactician',run.elite,run.stage,{nodes:2000});if(m){setHint({from:m.from,to:m.to,text:hintFor(m)});setSelected(m.from);}}
   useEffect(()=>{
     function key(e:KeyboardEvent) {
       if((e.target as HTMLElement).matches('select, input, textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
@@ -173,13 +174,13 @@ export default function App() {
             <div className={`chessboard${drag?' is-dragging':''}${thinking?' is-thinking':''}`} role="group" aria-busy={thinking} aria-label="Chessboard. You play ivory. Drag or click a piece to move. Arrow keys navigate; Enter selects.">{Array.from({length:64},(_,i)=>{
               const rank=8-Math.floor(i/8),file=i%8,sq=(FILES[file]+rank) as Square,piece=chess.get(sq);
               const target=legal.some(m=>m.to===sq),isElite=sq===run.elite;
-              const threatened=threats&&chess.isAttacked(sq,'b');
+              const threatened=threats&&chess.isAttacked(sq,'b'),undefended=hanging.has(sq);
               const enemyReach=selected&&chess.get(selected)?.color==='b'&&chess.attackers(sq,'b').includes(selected);
               const risky=riskySquares.has(sq),givesCheck=checkers.includes(sq);
-              return <button ref={el=>{squareRefs.current[sq]=el;}} key={sq} data-square={sq} className={`square ${(file+rank)%2===0?'light':'dark'} ${selected===sq||drag?.from===sq?'selected':''} ${target?'legal':''} ${target&&piece?'capture':''} ${lastMove&&(lastMove.from===sq||lastMove.to===sq)?'last-move':''} ${checkedKing===sq?'king-check':''} ${givesCheck?'checking-piece':''} ${hint?.to===sq?'hint-square':''} ${threatened?'threatened':''} ${enemyReach?'enemy-reach':''} ${isElite?'captain-square':''} ${risky?'risky-move':''} ${drag?.from===sq?'dragging-from':''} ${drag?.active&&hovered===sq&&target?'drop-target':''}`} tabIndex={focusSquare===sq?0:-1} aria-label={`${sq}${piece?`, ${piece.color==='w'?'your':'enemy'} ${NAMES[piece.type]}`:', empty'}${isElite?', marked captain':''}${givesCheck?', gives check':''}${checkedKing===sq?', in check':''}${target?', legal move':''}${threatened?', enemy attacks this square':''}${enemyReach?', selected enemy attacks this square':''}${risky?', destination attacked':''}`} aria-pressed={selected===sq} onPointerDown={e=>beginDrag(sq,e)} onPointerMove={onDragMove} onPointerUp={e=>{endDrag(e);if(e.pointerType!=='mouse')setHovered(null);}} onPointerCancel={endDrag} onClick={()=>{if(skipClick.current){skipClick.current=false;return;}selectSquare(sq);}} onMouseEnter={()=>setHovered(sq)} onMouseLeave={()=>setHovered(null)} onFocus={()=>{setFocusSquare(sq);}} onKeyDown={e=>{
+              return <button ref={el=>{squareRefs.current[sq]=el;}} key={sq} data-square={sq} className={`square ${(file+rank)%2===0?'light':'dark'} ${selected===sq||drag?.from===sq?'selected':''} ${target?'legal':''} ${target&&piece?'capture':''} ${lastMove&&(lastMove.from===sq||lastMove.to===sq)?'last-move':''} ${checkedKing===sq?'king-check':''} ${givesCheck?'checking-piece':''} ${hint?.to===sq?'hint-square':''} ${threatened?'threatened':''} ${enemyReach?'enemy-reach':''} ${isElite?'captain-square':''} ${risky?'risky-move':''} ${drag?.from===sq?'dragging-from':''} ${drag?.active&&hovered===sq&&target?'drop-target':''}`} tabIndex={focusSquare===sq?0:-1} aria-label={`${sq}${piece?`, ${piece.color==='w'?'your':'enemy'} ${NAMES[piece.type]}`:', empty'}${isElite?', marked captain':''}${givesCheck?', gives check':''}${checkedKing===sq?', in check':''}${target?', legal move':''}${threatened?', enemy attacks this square':''}${undefended?', undefended':''}${enemyReach?', selected enemy attacks this square':''}${risky?', destination attacked':''}`} aria-pressed={selected===sq} onPointerDown={e=>beginDrag(sq,e)} onPointerMove={onDragMove} onPointerUp={e=>{endDrag(e);if(e.pointerType!=='mouse')setHovered(null);}} onPointerCancel={endDrag} onClick={()=>{if(skipClick.current){skipClick.current=false;return;}selectSquare(sq);}} onMouseEnter={()=>setHovered(sq)} onMouseLeave={()=>setHovered(null)} onFocus={()=>{setFocusSquare(sq);}} onKeyDown={e=>{
                 const offsets:Record<string,[number,number]>={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};const step=offsets[e.key];if(step){e.preventDefault();const col=i%8+step[0],row=Math.floor(i/8)+step[1];if(col<0||col>7||row<0||row>7)return;const nextSq=(FILES[col]+(8-row)) as Square;setFocusSquare(nextSq);squareRefs.current[nextSq]?.focus();}
               }}>
-                {piece&&<Piece type={piece.type} color={piece.color} variant={isElite?encounter.theme:undefined}/>}{isElite&&<span className="elite-mark" title="Marked captain"><Crown size={11}/></span>}{target&&!piece&&<span className="move-dot"/>}{enemyReach&&<span className="enemy-reach-dot"/>}{threatened&&<span className="threat-dot"/>}{checkedKing===sq&&<span className="check-mark">!</span>}
+                {piece&&<Piece type={piece.type} color={piece.color} variant={isElite?encounter.theme:undefined}/>}{isElite&&<span className="elite-mark" title="Marked captain"><Crown size={11}/></span>}{target&&!piece&&<span className="move-dot"/>}{enemyReach&&<span className="enemy-reach-dot"/>}{threatened&&<span className={undefended?'threat-dot hanging':'threat-dot'}/>}{checkedKing===sq&&<span className="check-mark">!</span>}
               </button>;
             })}</div>
             {drag?.active&&<div className="drag-ghost" style={{left:drag.x,top:drag.y,'--ghost':`${drag.size}px`} as React.CSSProperties} aria-hidden="true"><Piece type={drag.piece.type} color={drag.piece.color}/></div>}
