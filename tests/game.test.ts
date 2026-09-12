@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, formatSeed, parseSeed, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -88,5 +88,30 @@ describe('Chess legality and campaign integration',()=>{
     expect(parseSeed(' ZZ ')).toBe(1295);
     for(const bad of ['','  ','-5','1.5','zz!','hello world','∞','99999999999999999999']) expect(parseSeed(bad)).toBeNull();
     expect(newRun('wanderer',parseSeed('zz')!).seed).toBe(1295);
+  });
+});
+describe('Hanging squares',()=>{
+  it('marks an attacked ivory piece with no defender',()=>{
+    expect([...hangingSquares(new Chess('4k3/8/2n5/8/3Q4/8/8/4K3 w - - 0 1'))]).toEqual(['d4']);
+  });
+  it('clears once any defender covers the square, king included',()=>{
+    expect(hangingSquares(new Chess('4k3/8/2n5/8/3Q4/2P5/8/4K3 w - - 0 1')).has('d4')).toBe(false);
+    expect(hangingSquares(new Chess('4k3/8/2n5/8/3Q4/4K3/8/8 w - - 0 1')).has('d4')).toBe(false);
+  });
+  it('never marks enemy pieces, empty squares, or the ivory king',()=>{
+    expect(hangingSquares(new Chess('4k3/8/8/8/8/8/8/R1n1K3 w - - 0 1')).size).toBe(0);
+    expect(hangingSquares(new Chess('4k3/8/8/8/8/8/8/r3K3 w - - 0 1')).size).toBe(0);
+  });
+  it('holds the predicate across every encounter deployment',()=>{
+    let run=newRun();
+    for(let i=0;i<ENCOUNTERS.length;i++){
+      const chess=new Chess(makeBattle(run.army,i).fen);
+      for(const sq of hangingSquares(chess)){
+        const piece=chess.get(sq);
+        expect(piece?.color).toBe('w');expect(piece?.type).not.toBe('k');
+        expect(chess.attackers(sq,'b').length).toBeGreaterThan(0);expect(chess.attackers(sq,'w')).toHaveLength(0);
+      }
+      run=recruit(run,'n');
+    }
   });
 });

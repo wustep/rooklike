@@ -143,3 +143,13 @@ test('complete act through the UI: fight, recruit, advance, defeat the boss',asy
   await expect(page.getByRole('dialog',{name:'Campaign complete'})).toBeVisible();
   if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/victory.png',fullPage:true});expect(errors).toEqual([]);
 });
+
+test('threats overlay marks only the undefended ivory piece',async({page})=>{
+  const run=newRun();run.initialFen='4k3/8/2n5/8/3Q4/8/6P1/4K3 w - - 0 1';run.elite='c6';run.positions={d4:'queen',g2:'pawn',e1:'king'};run.army=[{id:'king',type:'k'},{id:'queen',type:'q'},{id:'pawn',type:'p'}];
+  await page.addInitScript(({run,key})=>{localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
+  await page.getByRole('button',{name:/Threats/}).click();
+  await expect(page.locator('.threat-dot')).not.toHaveCount(0);
+  await expect(page.locator('.threat-dot.hanging')).toHaveCount(1);
+  await expect(page.locator('[data-square="d4"] .threat-dot')).toHaveClass(/hanging/);
+  await expect(page.locator('[data-square="d4"]')).toHaveAttribute('aria-label',/undefended/);
+});

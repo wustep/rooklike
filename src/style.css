@@ -118,3 +118,5 @@
 .journal>div:last-child>span.latest-entry{background:#c5d3b714;color:#dde5cf;box-shadow:inset 0 0 0 1px #c5d3b733}
 .journal>div:last-child>span.latest-entry b{font-size:8px;letter-spacing:1.2px;font-weight:600;color:var(--gold);margin-right:6px}
 @media(max-width:720px){.encounter-heading .briefing{font-size:10px;padding:0 10px}}
+
+.threat-dot.hanging{width:9px;height:9px;bottom:4px;background:#e0563f;box-shadow:0 0 0 2px #ffceb866,0 0 6px #e0563f88}
