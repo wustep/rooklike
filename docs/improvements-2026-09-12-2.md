@@ -174,14 +174,14 @@
 ## DevEx
 
 ### 24. Worker accepts a search override, driven from a DEV-only test hook
-- **Impact:** 🔴 high · **Effort:** S · **Status:** 🕓 deferred
+- **Impact:** 🔴 high · **Effort:** S · **Status:** ✅ accepted
 - **Problem.** `src/ai.worker.ts:2` takes the `Run` as the whole message, so there is no channel for `chooseMove`'s existing `override`; with the 550ms think delay (`App.tsx:63`) the "complete act through the UI" spec runs 9-14 minutes at full strength.
 - **Proposal.** Worker protocol `{run, override?}`; under `import.meta.env.DEV` read a Playwright-injected `window.__ROOKLIKE_TEST__` (or `?search=`) for a cheap profile and zero delay; drop the 900s timeout.
 - **Risks / trade-offs.** The spec asserts ivory wins; weaken the enemy only, see 25.
 - **Files.** `src/ai.worker.ts`, `src/App.tsx`, `e2e/game.spec.ts`
 
 ### 25. Override ivory's mover inside the long e2e test
-- **Impact:** 🔴 high · **Effort:** S · **Status:** 🕓 deferred
+- **Impact:** 🔴 high · **Effort:** S · **Status:** ✅ accepted
 - **Problem.** `e2e/game.spec.ts:122` calls `chooseMove(chess,'tactician',...)` in the Node process at full profile for every ivory ply; it is picking a move to click, not testing the engine.
 - **Proposal.** Pass a cheap override there too; validate ivory still wins.
 - **Risks / trade-offs.** Weaker ivory may lose a fight; fall back to `{depth:2,nodes:800}`.
@@ -240,3 +240,7 @@
 - Batch C `improve/contrast`: 15 (lift the 8-10px muted tier to about `#95a488`, floor the mobile footnote at 9px).
 - Deferred: 1/5/31 (fold into one error-path PR when triggered), 3 (measure first), 4 (hint runs at depth 2, not 1; worker routing collides with R1-1), 6/7 (rare), 9 (taste call for Stephen), 13/14/21/23 (M-sized UI), 24/25/27 (one PR with R1-1 and R1-31, the same worker effect lines), 26/28/29/30 (refactors, do when next touching those files), R1-17/15/10/23/30/31.
 - Rejected: 8 (en passant already tested at `tests/game.test.ts:25`), 10 (toast layering is not a bug and conflicts with 11), 18 (b1/g1/c1/f1 is the normal chess start; castle after developing, which is the stage-6 lesson), 20 (the repeatable hourglass is test-pinned as intentional in `tests/depth.test.ts:37`; only `pools[1..3]` are dead), 22 (captain capture ends the tutorial regardless of defenders, so "develop knights" fits), R1-3b (the 20000-entry cap is unreachable; the table is per call and the largest budget is 10400 nodes).
+
+## Landed (round 2)
+
+- #9 contrast (15). #10 worker reuse + DEV search hook + fast act e2e (24, 25, R1-1, R1-31 logging; evaluator upgraded the combined PR to SHIP-NOW). #11 battle readability (17, 19, 12, 16, 11). #12 captain-capture ply (2).
