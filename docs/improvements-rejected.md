@@ -10,3 +10,9 @@
 - **Rotate the guaranteed relic slot and add a king-safety relic** — the repeatable hourglass slot is intentional and test-pinned; only the dead `pools[1..3]` data is worth deleting _(rejected 2026-09-12)_
 - **Rewrite the tutorial lesson to attacker/defender counting** — captain capture ends the fight regardless of defenders, so "develop knights" matches the position _(rejected 2026-09-12)_
 - **Depth-preferred replacement for the transposition table cap** — the 20000-entry cap is unreachable with a per-call table and a 10400-node maximum budget _(rejected 2026-09-12)_
+- **Run history / lifetime record** — no audience yet; second storage key and quota handling for an unrequested feature _(rejected 2026-09-12)_
+- **Dev URL params for stage/seed/FEN** — the DEV `__ROOKLIKE_TEST__` hook covers search strength and a localStorage seed is one line; `?fen=` would bypass `makeBattle` invariants _(rejected 2026-09-12)_
+- **`loadRun` seed guard** — every version-3 save carries a seed and older saves migrate with their position intact _(rejected 2026-09-12)_
+- **Header rail and board column measure** — premise stale; both share the 40px gutter in the current grid _(rejected 2026-09-12)_
+- **Shared scripted-act vitest helper** — the 40s act e2e removed the motivation _(rejected 2026-09-12)_
+- **Engine perf guard test** — `tests/engine.test.ts` already asserts depth and a node ceiling via SearchStats _(rejected 2026-09-12)_

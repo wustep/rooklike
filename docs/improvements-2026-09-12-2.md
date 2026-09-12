@@ -244,3 +244,13 @@
 ## Landed (round 2)
 
 - #9 contrast (15). #10 worker reuse + DEV search hook + fast act e2e (24, 25, R1-1, R1-31 logging; evaluator upgraded the combined PR to SHIP-NOW). #11 battle readability (17, 19, 12, 16, 11). #12 captain-capture ply (2).
+
+## Round 3 (re-evaluation of the deferred pool, no new exploration)
+
+SHIP-NOW batches:
+- `improve/teach-coach-material`: R1-17 coach line (exact SAN detectors only: mate, promotion, castling, three or more checks, else the encounter lesson), R1-18 minimal ("Checkmate by the enemy X on sq" in the end modal), R1-15 material strip (pure `materialSwing`, shown only after a capture).
+- `improve/threats-hanging`: R1-10 hanging vs defended (mirror the `tacticalRead` rule: attacked by black and zero white attackers, ivory non-king only; say "undefended", never "safe"; pure `hangingSquares` with tests), R2-4 hint strength (pass `run.stage` plus a node cap, stay synchronous).
+- `improve/camp-readability`: R2-13 reason line next to a disabled Continue, R2-14 relic names next to their icons, R2-21 captain preview (piece glyph, bounty, par).
+- `improve/devex-check-claude-md`: R2-27 `npm run check`, R1-30 CLAUDE.md, R1-32 the four strictness flags (verified zero errors on HEAD).
+Rejected this round: R1-3, R1-5, R1-21, R1-31, R2-1 (landed in #10), R2-5, R2-9 (premise stale), R2-26, R2-30 (engine test already reads SearchStats), R2-31 (landed in #10). Still deferred: R1-2, R1-4, R1-6, R1-11, R1-22, R1-23, R2-3, R2-6, R2-7, R2-23, R2-28, R2-29.
+Correction: #10 landed R2-31's logging and R2-1's null-reply handling, not R1-31.
