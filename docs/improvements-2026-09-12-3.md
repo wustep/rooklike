@@ -119,3 +119,7 @@
 - `ux/effect-notices` (after the a11y branch, shares the toast lines): 7 minus the shop strike (`shopStock` folds the discount into a floor, so there is no base cost to strike); diff from the previous log length plus one because every ply also logs a move line; initialise the ref to the loaded length and ignore shrinks from takeback.
 - Deferred: 9 (one sentence lifted from the help modal would be fine; the extra button competes with Begin), 12 (apt deps are not cacheable; under a minute saved), 13 (needs per-spec opt-out; depth.spec asserts specific replies).
 - Rejected: 1 as written (a penalty for ivory makes draws worth more to the enemy, amplifying the complaint; the lever is the rule at `game.ts:159`, decide direction first), 10 (a third heading line while 3 fights for 40px; delete the field if anything).
+
+## Landed (round 4)
+
+- #17 CI build + no cancel on main (11, 14). #18 one live region (4). #19 draw reason (8). #20 Takeback history persists (2). #21 battle column reserve, contrast, always-on material strip (3, 5, 6; reserve 400 after re-measuring with the strip). #22 effect notices (7, minus the shop strike; plus handling of the 60-entry log cap).
