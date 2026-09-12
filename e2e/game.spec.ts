@@ -69,6 +69,20 @@ test('desktop: takeback can rewind several turns in a row',async({page})=>{
   await expect(takeback).toBeDisabled();
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).moves,SAVE_KEY)).toEqual([]);
 });
+test('desktop: takeback charges survive a reload',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Begin your journey'}).click();
+  await page.locator('[data-square="e2"]').click();await page.locator('[data-square="e4"]').click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)!).moves.length===2,SAVE_KEY);
+  await page.reload();
+  const takeback=page.getByRole('button',{name:/Takeback/});
+  await expect(takeback).toBeEnabled();
+  await takeback.click();
+  await expect(page.locator('[data-square="e2"]')).toHaveAttribute('aria-label',/your Pawn/);
+  await expect(page.locator('.charge-count')).toHaveText('1');
+  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).moves,SAVE_KEY)).toEqual([]);
+});
 test('desktop: a pasted road code starts that exact road',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});
   await page.addInitScript(()=>localStorage.setItem('rooklike-welcomed','1'));

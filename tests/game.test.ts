@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, materialSwing, rememberTurn, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, materialSwing, rememberTurn, takeback, loadHistory, saveHistory, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -102,6 +102,30 @@ describe('Chess legality and campaign integration',()=>{
     expect(parseSeed(' ZZ ')).toBe(1295);
     for(const bad of ['','  ','-5','1.5','zz!','hello world','∞','99999999999999999999']) expect(parseSeed(bad)).toBeNull();
     expect(newRun('wanderer',parseSeed('zz')!).seed).toBe(1295);
+  });
+});
+describe('Takeback history storage',()=>{
+  const store:Record<string,string>={};
+  beforeEach(()=>{for(const key of Object.keys(store))delete store[key];(globalThis as {localStorage?:unknown}).localStorage={getItem:(k:string)=>store[k]??null,setItem:(k:string,v:string)=>{store[k]=String(v);},removeItem:(k:string)=>{delete store[k];},clear:()=>{for(const key of Object.keys(store))delete store[key];},key:()=>null,length:0};});
+  afterEach(()=>{delete (globalThis as {localStorage?:unknown}).localStorage;});
+  it('restores a saved history only for the run it belongs to',()=>{
+    let run=newRun('wanderer',42);const history=rememberTurn([],run);
+    run=playMove(run,'e4');run=playMove(run,getChess(run).moves()[0]);
+    expect(loadHistory(run)).toEqual([]);
+    saveHistory(history);
+    expect(loadHistory(run)).toEqual(history);
+    expect(takeback(run,loadHistory(run))!.run.moves).toEqual([]);
+    expect(loadHistory({...run,seed:run.seed+1})).toEqual([]);
+    expect(loadHistory({...run,stage:run.stage+1})).toEqual([]);
+    expect(loadHistory({...run,moves:[]})).toEqual([]);
+    saveHistory([]);expect(loadHistory(run)).toEqual([]);
+  });
+  it('keeps only the last twelve snapshots',()=>{
+    let run=newRun('wanderer',42);run=playMove(run,'e4');run=playMove(run,getChess(run).moves()[0]);
+    saveHistory(Array.from({length:20},(_,i)=>({...run,moves:['e4'],battleUndos:i})));
+    const loaded=loadHistory(run);
+    expect(loaded).toHaveLength(12);
+    expect(loaded.map(r=>r.battleUndos)).toEqual([8,9,10,11,12,13,14,15,16,17,18,19]);
   });
 });
 describe('Hanging squares',()=>{
