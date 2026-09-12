@@ -197,6 +197,13 @@ export function tacticalRead(chess: Chess, square?: Square|null): string {
   if(targets.length>=2)return `${NAMES[piece.type]} on ${square} forks ${targets.map(p=>`${NAMES[p!.type].toLowerCase()} on ${p!.square}`).join(' and ')}.`;
   return `${NAMES[piece.type]} on ${square}. ${RULES[piece.type]}`;
 }
+export function drawReason(chess: Chess):{reason:string;lesson:string} {
+  if(chess.isStalemate())return {reason:'Stalemate: the enemy king had no legal move and was not in check.',lesson:'Leave the losing king air — mate needs a square to take away, not every square.'};
+  if(chess.isThreefoldRepetition())return {reason:'Repetition: the same position stood on the board three times.',lesson:'Repeating is a truce. Change the plan before the third time.'};
+  if(chess.isDrawByFiftyMoves())return {reason:'Fifty moves passed with no pawn move and no capture.',lesson:'Push a pawn or trade something. Progress has to be visible on the board.'};
+  if(chess.isInsufficientMaterial())return {reason:'Insufficient material: neither side has enough left to mate.',lesson:'Keep a pawn or a second piece. Mate needs force, not just a king.'};
+  return {reason:'The position is drawn.',lesson:'A draw ends the journey. Play for the win while the pieces are still on the board.'};
+}
 export function hangingSquares(chess: Chess):Set<Square> {
   const squares=new Set<Square>();
   for(const piece of chess.board().flat()){
