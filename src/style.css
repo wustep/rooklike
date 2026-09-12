@@ -128,3 +128,11 @@
 .reward-modal .coach{display:flex;align-items:flex-start;gap:7px;margin:9px 0 0;padding:9px 11px;border-radius:9px;background:#c5d3b70f;box-shadow:inset 0 0 0 1px #c5d3b724;font-size:11.5px;line-height:1.6;font-style:italic;color:#cdd6bd;text-align:left}
 .reward-modal .coach svg{flex:none;margin-top:3px;color:var(--gold)}
 .threat-dot.hanging{width:9px;height:9px;bottom:4px;background:#e0563f;box-shadow:0 0 0 2px #ffceb866,0 0 6px #e0563f88}
+.left-panel .relic-item{gap:6px;padding:3px 8px;border:1px solid #b5ce8e26;border-radius:4px;background:#c3d79908;font-size:10px;line-height:1.2;white-space:nowrap}
+.left-panel .relics{flex-wrap:wrap;gap:6px}
+.next-captain{display:inline-flex;align-items:center;gap:8px;margin-right:9px;vertical-align:middle}
+.next-captain .piece.small{width:20px;height:25px;flex-shrink:0}
+.next-captain strong{font-weight:600;color:#cdd6bd}
+.next-captain>span{font-size:10px;color:var(--gold);letter-spacing:.3px}
+.continue-reason{text-align:center;font-size:10px!important;color:#95a488!important;margin-top:9px!important;padding:0!important}
+.left-panel .abandon{white-space:nowrap}
