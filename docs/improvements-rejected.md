@@ -16,3 +16,5 @@
 - **Header rail and board column measure** — premise stale; both share the 40px gutter in the current grid _(rejected 2026-09-12)_
 - **Shared scripted-act vitest helper** — the 40s act e2e removed the motivation _(rejected 2026-09-12)_
 - **Engine perf guard test** — `tests/engine.test.ts` already asserts depth and a node ceiling via SearchStats _(rejected 2026-09-12)_
+- **Side-relative draw penalty in the engine** — as proposed it makes draws worth more to the enemy and amplifies the repetition complaint; decide contempt vs enemy-win direction first, and note `game.ts` ends the run on any draw _(rejected 2026-09-12)_
+- **Render `Encounter.description` above the briefing** — a third line above the board while the battle column is already over budget on short desktops; delete the dead field instead _(rejected 2026-09-12)_
