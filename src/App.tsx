@@ -60,7 +60,7 @@ export default function App() {
   const lastMove=moveHistory.at(-1);
   const checkedKing=chess.isCheck()?chess.board().flat().find(p=>p?.type==='k'&&p.color===chess.turn())?.square:null;
   const checkers=useMemo(()=>checkedKing?chess.attackers(checkedKing,chess.turn()==='w'?'b':'w'):[],[chess,checkedKing]);
-  const announcement=lastMove?`${lastMove.color==='w'?'Your':'Enemy'} ${NAMES[lastMove.piece].toLowerCase()} ${lastMove.captured?`takes ${NAMES[lastMove.captured].toLowerCase()} on ${lastMove.to}`:`to ${lastMove.to}`}.${lastMove.promotion?` Promotes to ${NAMES[lastMove.promotion].toLowerCase()}.`:''}${chess.isCheckmate()?' Checkmate.':chess.isCheck()?chess.turn()==='w'?' You are in check.':' Enemy king is in check.':''}`:'';
+  const announcement=lastMove?`${lastMove.color==='w'?'Your':'Enemy'} ${NAMES[lastMove.piece].toLowerCase()} ${lastMove.captured?`takes ${NAMES[lastMove.captured].toLowerCase()} on ${lastMove.to}`:`to ${lastMove.to}`}.${lastMove.promotion?` Promotes to ${NAMES[lastMove.promotion].toLowerCase()}.`:''}${chess.isCheckmate()?' Checkmate.':chess.isCheck()?chess.turn()==='w'?' You are in check.':' Enemy king is in check.':chess.turn()==='w'?' Your move.':''}`:'';
 
   useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(run));setSaveError(false);}catch{setSaveError(true);}},[run]);
   useEffect(()=>()=>{workerRef.current?.terminate();workerRef.current=null;},[]);
@@ -170,7 +170,7 @@ export default function App() {
       </aside>
       <main className="battle-panel">
         <div className="encounter-heading"><h1>{encounter.name}</h1><p className="briefing"><Crown size={11}/><strong>{encounter.enemy}</strong> {encounter.ability} <span>{encounter.lesson}</span></p></div>
-        <div className={`turn-bar ${chess.isCheck()?'check-bar':''}`} role="status" aria-live="polite"><div><span className={`turn-indicator ${thinking?'thinking':''}`}/><strong>{chess.isCheck()?(thinking?'Enemy king in check':'Check'):thinking?'Enemy thinking…':'Your move'}</strong></div><span className="sr-only">{announcement}</span><span className="turn-count">{Math.floor(run.moves.length/2)+1}</span></div>
+        <div className={`turn-bar ${chess.isCheck()?'check-bar':''}`}><div><span className={`turn-indicator ${thinking?'thinking':''}`}/><strong>{chess.isCheck()?(thinking?'Enemy king in check':'Check'):thinking?'Enemy thinking…':'Your move'}</strong></div><span className="sr-only" role="status" aria-live="polite">{announcement}</span><span className="turn-count">{Math.floor(run.moves.length/2)+1}</span></div>
         <div className={`board-scene ${lastMove?.captured?'capture-scene':''}`}>
           {lastMove?.captured&&<div key={`${run.stage}-${run.moves.length}`} className={`capture-feedback ${lastMove.color==='b'?'ally-lost':''}`} aria-hidden="true">{lastMove.color==='w'?`${NAMES[lastMove.captured]} captured`:`${NAMES[lastMove.captured]} lost`}</div>}
           <div className="board-frame">
@@ -193,7 +193,7 @@ export default function App() {
           </div>
         </div>
         <div className="passage-bonus"><div className="bonus-label"><strong>Swift passage</strong><span>Turn {Math.floor(run.moves.length/2)+1} · target {bonus.par} · {bonus.available?'+12':'expired'}</span></div><div className="bonus-track"><span style={{width:`${Math.max(0,1-Math.ceil(run.moves.length/2)/bonus.par)*100}%`}}/></div></div>
-        {swing.taken.length+swing.lost.length>0&&<div className="material" role="status" aria-label={`Material: ${swing.taken.length} taken, ${swing.lost.length} lost, ${swing.reading}`}>{swing.taken.length>0&&<span className="material-side">TAKEN {swing.taken.map((type,i)=><Piece key={i} type={type} color="b" small/>)}</span>}{swing.lost.length>0&&<span className="material-side">LOST {swing.lost.map((type,i)=><Piece key={i} type={type} color="w" small/>)}</span>}<strong className={swing.delta>0?'ahead':swing.delta<0?'behind':''}>{swing.reading}</strong></div>}
+        {swing.taken.length+swing.lost.length>0&&<div className="material"><span className="sr-only">{`Material: ${swing.taken.length} taken, ${swing.lost.length} lost, ${swing.reading}`}</span>{swing.taken.length>0&&<span className="material-side">TAKEN {swing.taken.map((type,i)=><Piece key={i} type={type} color="b" small/>)}</span>}{swing.lost.length>0&&<span className="material-side">LOST {swing.lost.map((type,i)=><Piece key={i} type={type} color="w" small/>)}</span>}<strong className={swing.delta>0?'ahead':swing.delta<0?'behind':''}>{swing.reading}</strong></div>}
         <div className="board-tools">
           <button className={threats?'tool active':'tool'} onClick={()=>setThreats(!threats)} aria-pressed={threats}>{threats?<Eye size={16}/>:<EyeOff size={16}/>} Threats <kbd>H</kbd></button>
           <button className="tool" onClick={undo} disabled={!canUndo||(run.phase!=='battle'&&run.phase!=='defeat'&&run.phase!=='draw')}><RotateCcw size={15}/> Takeback <span className="charge-count">{run.charges}</span><kbd>U</kbd></button>

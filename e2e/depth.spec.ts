@@ -36,7 +36,7 @@ test('a remaining Takeback can rescue the last turn after checkmate',async({page
   await seed(page,run);await page.locator('[data-square="a1"]').click();await page.locator('[data-square="b1"]').click();
   await expect(page.getByRole('dialog',{name:'Journey ended'})).toBeVisible();
   await expect(page.locator('.king-check')).toHaveCount(1);await expect(page.locator('.checking-piece')).toHaveCount(1);
-  await expect(page.locator('.turn-bar')).toContainText('Checkmate.');
+  await expect(page.locator('.turn-bar')).toContainText('Checkmate.');await expect(page.locator('.turn-bar [role=status]')).toHaveCount(1);
   await page.getByRole('button',{name:/Spend a Takeback/}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-square="a1"]')).toHaveAttribute('aria-label',/your Rook/);await expect(page.locator('[data-square="g2"]')).toHaveAttribute('aria-label',/your Pawn/);
   const restored:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));expect(restored.phase).toBe('battle');expect(restored.charges).toBe(1);expect(restored.moves).toEqual([]);
