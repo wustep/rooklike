@@ -33,6 +33,7 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await expect(page.locator('.charge-count')).toHaveText('1');
   await expect(takeback).toBeDisabled();
   await page.keyboard.press('h');await expect(page.locator('.threat-dot').first()).toBeVisible();
+  await page.locator('[data-square="a1"]').focus();await page.keyboard.press('ArrowLeft');await expect(page.locator('[data-square="a1"]')).toBeFocused();
   await page.locator('[data-square="e2"]').focus();await page.keyboard.press('Enter');await page.keyboard.press('ArrowUp');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   const saved=await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'));await page.reload();expect(await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'))).toBe(saved);
