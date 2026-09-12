@@ -28,7 +28,7 @@ export default function App() {
   const [codeBad,setCodeBad]=useState(false);
   const [journal,setJournal]=useState(false);
   const [focusSquare,setFocusSquare]=useState<Square>('e2');
-  const [drag,setDrag]=useState<{from:Square;x:number;y:number;originX:number;originY:number;piece:{type:PieceSymbol;color:'w'|'b'};active:boolean;already:boolean}|null>(null);
+  const [drag,setDrag]=useState<{from:Square;x:number;y:number;originX:number;originY:number;size:number;piece:{type:PieceSymbol;color:'w'|'b'};active:boolean;already:boolean}|null>(null);
   const squareRefs=useRef<Record<string,HTMLButtonElement|null>>({});
   const mutedRef=useRef(muted);mutedRef.current=muted;
   const dragRef=useRef(drag);dragRef.current=drag;
@@ -87,7 +87,7 @@ export default function App() {
     const piece=chess.get(sq);if(piece?.color!=='w')return;
     e.preventDefault();
     skipClick.current=true;
-    const next={from:sq,x:e.clientX,y:e.clientY,originX:e.clientX,originY:e.clientY,piece:{type:piece.type,color:piece.color},active:false,already:selected===sq};
+    const next={from:sq,x:e.clientX,y:e.clientY,originX:e.clientX,originY:e.clientY,size:e.currentTarget.getBoundingClientRect().width,piece:{type:piece.type,color:piece.color},active:false,already:selected===sq};
     dragRef.current=next;setDrag(next);setSelected(sq);setHint(null);
     e.currentTarget.setPointerCapture(e.pointerId);
   }
@@ -160,19 +160,19 @@ export default function App() {
           {lastMove?.captured&&<div key={`${run.stage}-${run.moves.length}`} className={`capture-feedback ${lastMove.color==='b'?'ally-lost':''}`} role="status">{lastMove.color==='w'?`${NAMES[lastMove.captured]} captured`:`${NAMES[lastMove.captured]} lost`}</div>}
           <div className="board-frame">
             <div className="rank-labels" aria-hidden="true">{[8,7,6,5,4,3,2,1].map(r=><span key={r}>{r}</span>)}</div>
-            <div className={`chessboard${drag?' is-dragging':''}`} role="group" aria-label="Chessboard. You play ivory. Drag or click a piece to move. Arrow keys navigate; Enter selects.">{Array.from({length:64},(_,i)=>{
+            <div className={`chessboard${drag?' is-dragging':''}${thinking?' is-thinking':''}`} role="group" aria-busy={thinking} aria-label="Chessboard. You play ivory. Drag or click a piece to move. Arrow keys navigate; Enter selects.">{Array.from({length:64},(_,i)=>{
               const rank=8-Math.floor(i/8),file=i%8,sq=(FILES[file]+rank) as Square,piece=chess.get(sq);
               const target=legal.some(m=>m.to===sq),isElite=sq===run.elite;
               const threatened=threats&&chess.isAttacked(sq,'b');
               const enemyReach=selected&&chess.get(selected)?.color==='b'&&chess.attackers(sq,'b').includes(selected);
               const risky=riskySquares.has(sq);
-              return <button ref={el=>{squareRefs.current[sq]=el;}} key={sq} data-square={sq} className={`square ${(file+rank)%2===0?'light':'dark'} ${selected===sq||drag?.from===sq?'selected':''} ${target?'legal':''} ${target&&piece?'capture':''} ${lastMove&&(lastMove.from===sq||lastMove.to===sq)?'last-move':''} ${checkedKing===sq?'king-check':''} ${hint?.to===sq?'hint-square':''} ${threatened?'threatened':''} ${enemyReach?'enemy-reach':''} ${isElite?'captain-square':''} ${risky?'risky-move':''} ${drag?.from===sq?'dragging-from':''} ${drag?.active&&hovered===sq&&target?'drop-target':''}`} tabIndex={focusSquare===sq?0:-1} aria-label={`${sq}${piece?`, ${piece.color==='w'?'your':'enemy'} ${NAMES[piece.type]}`:', empty'}${isElite?', marked captain':''}${target?', legal move':''}${threatened?', enemy attacks this square':''}${enemyReach?', selected enemy attacks this square':''}${risky?', destination attacked':''}`} aria-pressed={selected===sq} onPointerDown={e=>beginDrag(sq,e)} onPointerMove={onDragMove} onPointerUp={endDrag} onPointerCancel={endDrag} onClick={()=>{if(skipClick.current){skipClick.current=false;return;}selectSquare(sq);}} onMouseEnter={()=>setHovered(sq)} onMouseLeave={()=>setHovered(null)} onFocus={()=>{setFocusSquare(sq);}} onKeyDown={e=>{
-                const offsets:Record<string,number>={ArrowLeft:-1,ArrowRight:1,ArrowUp:-8,ArrowDown:8};const delta=offsets[e.key];if(delta!==undefined){e.preventDefault();const next=Math.max(0,Math.min(63,i+delta));const nextSq=(FILES[next%8]+(8-Math.floor(next/8))) as Square;setFocusSquare(nextSq);squareRefs.current[nextSq]?.focus();}
+              return <button ref={el=>{squareRefs.current[sq]=el;}} key={sq} data-square={sq} className={`square ${(file+rank)%2===0?'light':'dark'} ${selected===sq||drag?.from===sq?'selected':''} ${target?'legal':''} ${target&&piece?'capture':''} ${lastMove&&(lastMove.from===sq||lastMove.to===sq)?'last-move':''} ${checkedKing===sq?'king-check':''} ${hint?.to===sq?'hint-square':''} ${threatened?'threatened':''} ${enemyReach?'enemy-reach':''} ${isElite?'captain-square':''} ${risky?'risky-move':''} ${drag?.from===sq?'dragging-from':''} ${drag?.active&&hovered===sq&&target?'drop-target':''}`} tabIndex={focusSquare===sq?0:-1} aria-label={`${sq}${piece?`, ${piece.color==='w'?'your':'enemy'} ${NAMES[piece.type]}`:', empty'}${isElite?', marked captain':''}${target?', legal move':''}${threatened?', enemy attacks this square':''}${enemyReach?', selected enemy attacks this square':''}${risky?', destination attacked':''}`} aria-pressed={selected===sq} onPointerDown={e=>beginDrag(sq,e)} onPointerMove={onDragMove} onPointerUp={e=>{endDrag(e);if(e.pointerType!=='mouse')setHovered(null);}} onPointerCancel={endDrag} onClick={()=>{if(skipClick.current){skipClick.current=false;return;}selectSquare(sq);}} onMouseEnter={()=>setHovered(sq)} onMouseLeave={()=>setHovered(null)} onFocus={()=>{setFocusSquare(sq);}} onKeyDown={e=>{
+                const offsets:Record<string,[number,number]>={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};const step=offsets[e.key];if(step){e.preventDefault();const col=i%8+step[0],row=Math.floor(i/8)+step[1];if(col<0||col>7||row<0||row>7)return;const nextSq=(FILES[col]+(8-row)) as Square;setFocusSquare(nextSq);squareRefs.current[nextSq]?.focus();}
               }}>
                 {piece&&<Piece type={piece.type} color={piece.color} variant={isElite?encounter.theme:undefined}/>}{isElite&&<span className="elite-mark" title="Marked captain"><Crown size={11}/></span>}{target&&!piece&&<span className="move-dot"/>}{enemyReach&&<span className="enemy-reach-dot"/>}{threatened&&<span className="threat-dot"/>}{checkedKing===sq&&<span className="check-mark">!</span>}
               </button>;
             })}</div>
-            {drag?.active&&<div className="drag-ghost" style={{left:drag.x,top:drag.y}} aria-hidden="true"><Piece type={drag.piece.type} color={drag.piece.color}/></div>}
+            {drag?.active&&<div className="drag-ghost" style={{left:drag.x,top:drag.y,'--ghost':`${drag.size}px`} as React.CSSProperties} aria-hidden="true"><Piece type={drag.piece.type} color={drag.piece.color}/></div>}
             {lastMove&&<svg className="move-trail" viewBox="0 0 8 8" aria-hidden="true"><defs><marker id="move-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="3" markerHeight="3" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker></defs><line x1={FILES.indexOf(lastMove.from[0])+.5} y1={8-Number(lastMove.from[1])+.5} x2={FILES.indexOf(lastMove.to[0])+.5} y2={8-Number(lastMove.to[1])+.5} markerEnd="url(#move-arrow)"/></svg>}
             <div className="file-labels" aria-hidden="true">{[...FILES].map(f=><span key={f}>{f}</span>)}</div>
           </div>
