@@ -42,6 +42,12 @@ describe('Every encounter starts with two safe kings',()=>{
     vi.stubGlobal('localStorage',{getItem:()=>JSON.stringify(run)});
     const restored=loadRun();expect(restored.moves).toEqual(run.moves);expect(getChess(restored).isCheck()).toBe(true);vi.unstubAllGlobals();
   });
+  it('names the piece giving check so the board can highlight it',()=>{
+    const single=new Chess('6k1/8/8/8/4r3/8/8/4K3 w - - 0 1');
+    expect(single.isCheck()).toBe(true);expect(single.attackers('e1','b')).toEqual(['e4']);
+    const double=new Chess('4k3/8/8/8/1b6/3n4/8/R3K3 w - - 0 1');
+    expect(double.attackers('e1','b').sort()).toEqual(['b4','d3']);
+  });
   it('repairs unsafe saved openings while keeping the company and economy',()=>{
     const run={...newRun(),initialFen:'6k1/8/8/8/4r3/8/8/4K3 w - - 0 1',coins:83,charges:4};
     vi.stubGlobal('localStorage',{getItem:()=>JSON.stringify(run)});
