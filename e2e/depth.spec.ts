@@ -34,6 +34,8 @@ test('a remaining Takeback can rescue the last turn after checkmate',async({page
   const run={...newRun(),initialFen:'8/1b6/8/8/5kq1/8/6PP/R6K w - - 0 1',elite:'g4' as const,positions:{a1:'rook',h1:'king',g2:'pawn1',h2:'pawn2'},army:[{id:'rook',type:'r' as const},{id:'king',type:'k' as const},{id:'pawn1',type:'p' as const},{id:'pawn2',type:'p' as const}]};
   await seed(page,run);await page.locator('[data-square="a1"]').click();await page.locator('[data-square="b1"]').click();
   await expect(page.getByRole('dialog',{name:'Journey ended'})).toBeVisible();
+  await expect(page.locator('.king-check')).toHaveCount(1);await expect(page.locator('.checking-piece')).toHaveCount(1);
+  await expect(page.locator('.turn-bar')).toContainText('Checkmate.');
   await page.getByRole('button',{name:/Spend a Takeback/}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.locator('[data-square="a1"]')).toHaveAttribute('aria-label',/your Rook/);await expect(page.locator('[data-square="g2"]')).toHaveAttribute('aria-label',/your Pawn/);
   const restored:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));expect(restored.phase).toBe('battle');expect(restored.charges).toBe(1);expect(restored.moves).toEqual([]);
