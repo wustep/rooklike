@@ -178,7 +178,7 @@ export function sendHome(run: Run, id: string): Run {
 }
 export function takeRelic(run:Run,relic:Relic):Run {return {...run,relics:[...new Set([...run.relics,relic])],charges:run.charges+(relic==='hourglass'?2:0)};}
 export function rememberTurn(history:Run[],run:Run):Run[] {return [...history,structuredClone(run)];}
-export function effectEntries(prev:string[],next:string[]):string[] {return next.length<=prev.length?[]:next.slice(prev.length).filter(e=>!e.startsWith('You · ')&&!e.startsWith('Enemy · ')&&!e.startsWith('Entered ')).slice(0,2);}
+export function effectEntries(prev:string[],next:string[]):string[] {let added=next.length-prev.length;if(added<=0){if(next===prev||next.length<prev.length)return [];added=[1,2,3,4].find(k=>next.slice(0,next.length-k).every((e,i)=>e===prev[i+k]))??0;}return next.slice(next.length-added).filter(e=>!e.startsWith('You · ')&&!e.startsWith('Enemy · ')&&!e.startsWith('Entered ')).slice(0,2);}
 export function takeback(run:Run,history:Run[]):{run:Run;history:Run[]}|null {
   const previous=history.at(-1);
   if(!previous||run.charges<1||!['battle','defeat','draw'].includes(run.phase))return null;

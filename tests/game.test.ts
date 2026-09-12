@@ -41,6 +41,7 @@ describe('Chess legality and campaign integration',()=>{
     expect(effectEntries(before,[...before,'Enemy · Nxd3+','Mire Rider steals 5.','Last Rites · +9.','Crownseed · +20, +1 Takeback.'])).toEqual(['Mire Rider steals 5.','Last Rites · +9.']);
     expect(effectEntries(before,[...before,'Entered The Glass Causeway.'])).toEqual([]);
     expect(effectEntries([...before,'You · e4'],before)).toEqual([]);
+    const full=Array.from({length:60},(_,i)=>`You · m${i}`);expect(effectEntries(full,[...full,'You · Rxa3','Forked Spurs · +4.'].slice(-60))).toEqual(['Forked Spurs · +4.']);expect(effectEntries(full,full)).toEqual([]);
   });
   it('lantern capture restores a takeback',()=>{
     let run=position('7k/8/8/8/8/b7/8/R3K3 w - - 0 1','a3');run.stage=2;run=playMove(run,'Rxa3');expect(run.charges).toBe(3);
