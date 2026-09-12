@@ -206,6 +206,21 @@ export function hangingSquares(chess: Chess):Set<Square> {
   return squares;
 }
 export function hintFor(move:Move):string {if(move.san.includes('#'))return 'Checkmate.';if(move.captured)return `Take the ${NAMES[move.captured].toLowerCase()}. Is your piece safe after?`;if(move.san.includes('+'))return 'Check. They must answer.';if(move.isKingsideCastle()||move.isQueensideCastle())return 'Castle: shelter the king, connect the rooks.';if(move.piece==='n'||move.piece==='b')return 'Develop toward the center.';return 'Improve the position. Keep the king safe.';}
+export function coachLine(moves:string[], lesson:string):string {
+  const ivory=moves.filter((_,i)=>i%2===0);
+  if(ivory.at(-1)?.includes('#'))return 'You ended it with mate. Forcing moves finish fights; count them first next time.';
+  if(ivory.some(san=>san.includes('=')))return 'A pawn reached the last rank. Every pawn is a queen that has not arrived yet.';
+  if(ivory.some(san=>san.startsWith('O-O')))return 'You castled. The king stepped off the open files and the rook joined the fight.';
+  if(ivory.filter(san=>san.includes('+')).length>=3)return 'Three checks or more. Each one forced a reply, and a forced reply is a free tempo.';
+  return lesson;
+}
+export function materialSwing(chess: Chess):{taken:PieceSymbol[];lost:PieceSymbol[];delta:number;reading:string} {
+  const taken:PieceSymbol[]=[],lost:PieceSymbol[]=[];
+  for(const move of chess.history({verbose:true})) if(move.captured)(move.color==='w'?taken:lost).push(move.captured);
+  const delta=taken.reduce((sum,t)=>sum+VALUES[t],0)-lost.reduce((sum,t)=>sum+VALUES[t],0);
+  const size=Math.abs(delta);
+  return {taken,lost,delta,reading:delta===0?'even material':`${delta>0?'+':'−'}${size}, ${size>=9?'a queen':size>=5?'a rook':size>=3?'a piece':'a pawn'} ${delta>0?'up':'down'}`};
+}
 export const SAVE_KEY='rooklike-run-v1';
 export function loadRun():Run {
   try {
