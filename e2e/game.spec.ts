@@ -89,6 +89,7 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
   await page.addInitScript(({run,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
   await page.locator('[data-square="a1"]').click();await page.locator('[data-square="a3"]').click();
   await expect(page.getByRole('dialog',{name:'Encounter won'})).toBeVisible();
+  await expect(page.locator('.reward-modal .coach')).toContainText('Develop knights and bishops');
   await page.getByRole('button',{name:/A willing knight/}).click();
   await page.reload();await expect(page.getByRole('button',{name:/A willing knight/})).toBeDisabled();
   await page.getByRole('button',{name:'Recruit Rook for 35 crowns'}).click();
