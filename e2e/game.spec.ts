@@ -22,7 +22,7 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await expect(page.locator('.square')).toHaveCount(64);
   expect(await page.locator('.board-frame').evaluate(el=>getComputedStyle(el).transform)).toBe('none');
   expect(await page.locator('.board-scene').evaluate(el=>getComputedStyle(el).perspective)).toBe('none');
-  await page.screenshot({path:'artifacts/desktop.png',fullPage:true});
+  if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/desktop.png',fullPage:true});
   await page.locator('[data-square="b1"]').click();await expect(page.locator('[data-square="c3"]')).toHaveClass(/legal/);
   await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)!).moves.length===2,SAVE_KEY);
@@ -69,7 +69,7 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
   await page.getByRole('button',{name:/A willing knight/}).click();
   await page.reload();await expect(page.getByRole('button',{name:/A willing knight/})).toBeDisabled();
   await page.getByRole('button',{name:'Recruit Rook for 35 crowns'}).click();
-  await page.screenshot({path:'artifacts/rewards.png',fullPage:true});
+  if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/rewards.png',fullPage:true});
   await page.getByRole('button',{name:/Continue to/}).click();await expect(page.locator('.app')).toHaveClass(/theme-marsh/);
   await expect(page.getByRole('heading',{name:'A Knight in the Mire'})).toBeVisible();
   const state:Run=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY);expect(state.army).toHaveLength(4);expect(state.coins).toBe(27);
@@ -85,7 +85,7 @@ test('promotion choice can cause a material draw; final board remains ended',asy
 test('mobile: board fits and controls stay usable',async({page})=>{
   await page.setViewportSize({width:390,height:844});await page.goto('/');await page.getByRole('button',{name:'Begin your journey'}).click();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
-  await page.locator('[data-square="b1"]').click();await page.screenshot({path:'artifacts/mobile.png',fullPage:true});await page.locator('[data-square="c3"]').click();
+  await page.locator('[data-square="b1"]').click();if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/mobile.png',fullPage:true});await page.locator('[data-square="c3"]').click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)!).moves.length===2,SAVE_KEY);
   await page.getByRole('button',{name:/Threats/}).click();await expect(page.locator('.threat-dot').first()).toBeVisible();
   await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Back to the board'}).click();
@@ -118,5 +118,5 @@ test('complete act through the UI: fight, recruit, advance, defeat the boss',asy
     }
   }
   await expect(page.getByRole('dialog',{name:'Campaign complete'})).toBeVisible();
-  await page.screenshot({path:'artifacts/victory.png',fullPage:true});expect(errors).toEqual([]);
+  if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/victory.png',fullPage:true});expect(errors).toEqual([]);
 });
