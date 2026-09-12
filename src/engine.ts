@@ -80,8 +80,8 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
     if(chess.isCheckmate())return -WIN+ply;
     if(chess.isInsufficientMaterial()||chess.isThreefoldRepetition()||chess.isDrawByFiftyMoves())return 0;
   }
-  function after(move:Move,captain:Square|null|undefined,callback:(next:Square|null|undefined)=>number):number{
-    if(move.color==='w'&&move.to===captain)return WIN;
+  function after(move:Move,captain:Square|null|undefined,ply:number,callback:(next:Square|null|undefined)=>number):number{
+    if(move.color==='w'&&move.to===captain)return WIN-ply;
     chess.move(move);
     try{return -callback(move.color==='b'&&move.from===captain?move.to:captain);}finally{chess.undo();}
   }
@@ -101,7 +101,7 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
     all??=moves(captain,undefined,ply);
     if(!all.length)return checked?-WIN+ply:0;
     const candidates=checked?all:all.filter(m=>m.captured||m.promotion);
-    for(const move of candidates){const value=after(move,captain,next=>quiet(-beta,-alpha,next,remaining-1,ply+1));if(value>=beta)return value;alpha=Math.max(alpha,value);}
+    for(const move of candidates){const value=after(move,captain,ply,next=>quiet(-beta,-alpha,next,remaining-1,ply+1));if(value>=beta)return value;alpha=Math.max(alpha,value);}
     return alpha;
   }
   function search(depth:number,alpha:number,beta:number,captain:Square|null|undefined,ply:number):number{
@@ -114,7 +114,7 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
     const all=moves(captain,cached?.move,ply);if(!all.length)return 0;
     let best=-Infinity,bestMove=all[0];
     for(const move of all){
-      const value=after(move,captain,next=>search(depth-1,-beta,-alpha,next,ply+1));
+      const value=after(move,captain,ply,next=>search(depth-1,-beta,-alpha,next,ply+1));
       if(value>best){best=value;bestMove=move;}alpha=Math.max(alpha,value);
       if(alpha>=beta){if(!move.captured){killers.set(ply,[code(move),...(killers.get(ply)??[])].slice(0,2));history.set(code(move),(history.get(code(move))??0)+depth*depth);}break;}
     }
@@ -126,7 +126,7 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
   // A legal, safety-aware fallback is available even if a large position exhausts depth one.
   let fallback=-Infinity;
   for(const move of all){
-    let value=after(move,elite,()=>{
+    let value=after(move,elite,0,()=>{
       if(chess.isCheckmate())return -WIN;
       let result=evaluatePosition(chess)*sign();
       if(chess.isAttacked(move.to,chess.turn()))result+=VALUE[move.piece]*.8;
@@ -140,7 +140,7 @@ export function chooseMove(chess: Chess, difficulty:'wanderer'|'tactician', elit
     let iterationBest=best,score=-Infinity;
     const ranked:{move:Move;score:number}[]=[];
     try{
-      for(const move of all){let value=after(move,elite,next=>search(depth-1,-Infinity,-score,next,1));if(value>score){score=value;iterationBest=move;}ranked.push({move,score:value});}
+      for(const move of all){let value=after(move,elite,0,next=>search(depth-1,-Infinity,-score,next,1));if(value>score){score=value;iterationBest=move;}ranked.push({move,score:value});}
       best=iterationBest;lastScore=score;completed=depth;all=ranked.sort((a,b)=>b.score-a.score).map(r=>r.move);
       if(score>=WIN-100)break;
     }catch(error){if(error!==abort)throw error;break;}
