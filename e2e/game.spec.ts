@@ -33,10 +33,13 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await expect(page.locator('.charge-count')).toHaveText('1');
   await expect(takeback).toBeDisabled();
   await page.keyboard.press('h');await expect(page.locator('.threat-dot').first()).toBeVisible();
+  await page.locator('[data-square="a1"]').focus();await page.keyboard.press('ArrowLeft');await expect(page.locator('[data-square="a1"]')).toBeFocused();
   await page.locator('[data-square="e2"]').focus();await page.keyboard.press('Enter');await page.keyboard.press('ArrowUp');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   const saved=await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'));await page.reload();expect(await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'))).toBe(saved);
-  await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog',{name:'How to play'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog',{name:'How to play'})).toBeVisible();
+  await page.getByText('Field guide: how the pieces move').click();await expect(page.getByText('Two steps, then one sideways. Knights jump.')).toBeVisible();
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -60,6 +63,21 @@ test('desktop: takeback can rewind several turns in a row',async({page})=>{
   await expect(page.locator('.charge-count')).toHaveText('0');
   await expect(takeback).toBeDisabled();
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves)).toEqual([]);
+});
+test('desktop: a pasted road code starts that exact road',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.addInitScript(()=>localStorage.setItem('rooklike-welcomed','1'));
+  await page.goto('/');
+  await page.getByRole('button',{name:'New journey',exact:true}).click();
+  const input=page.getByLabel('Enter a road code');
+  await input.fill('not a code!');await page.getByRole('button',{name:'Play this code'}).click();
+  await expect(page.getByRole('dialog',{name:'Start a new journey'})).toBeVisible();
+  await expect(page.getByText('Not a road code.')).toBeVisible();
+  await input.fill('zz');await page.getByRole('button',{name:'Play this code'}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).seed)).toBe(1295);
+  await page.getByRole('link',{name:/Rooklike, start a new journey/}).click();
+  await expect(page.locator('.seed-row code')).toHaveText('zz');
 });
 test('reward persists across reload, recruits deploy, and theme changes',async({page})=>{
   let run=newRun();run.initialFen='7k/8/8/8/8/r7/8/R3K3 w - - 0 1';run.elite='a3';run.positions={a1:'rook',e1:'king'};run.army=[{id:'king',type:'k'},{id:'rook',type:'r'}];

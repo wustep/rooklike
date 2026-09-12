@@ -61,7 +61,7 @@ Select an enemy to trace its attack pattern. Attacked legal destinations use amb
 
 Existing saves retain their position, army, and rewards; old rampart and boss stages migrate to their new positions. Unsafe imported openings are rebuilt without losing the army, crowns, or relics. Legitimate checks reached during play stay intact.
 
-The road seed determines encounter variants, defender mixes, relic offers, and shop stock/prices. Reloading preserves that seed. **New journey** rolls a new road; **Replay this road** repeats the current seed. There are twelve encounter slots across three acts, with twenty-one named configurations in the pools. The first teaching encounter stays consistent.
+The road seed determines encounter variants, defender mixes, relic offers, and shop stock/prices. Reloading preserves that seed. **New journey** rolls a new road; **Replay this road** repeats the current seed. The new-journey and end-of-run panels show the road as a base36 code with a copy button, and the new-journey panel takes a pasted code to start that exact road. There are twelve encounter slots across three acts, with twenty-one named configurations in the pools. The first teaching encounter stays consistent.
 
 ## Validation
 
