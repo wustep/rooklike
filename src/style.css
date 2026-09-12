@@ -107,3 +107,14 @@
 @media(prefers-reduced-motion:reduce){.checking-piece .piece{animation:none!important}}
 @media(max-width:720px){.modal-actions{flex-wrap:wrap}.shop-items{grid-template-columns:1fr 1fr}.act-provisions strong{font-size:10px}.act-provisions small{font-size:9px}}
 .chessboard.is-thinking .square{cursor:default}.chessboard.is-thinking .square:hover:after{content:none}
+
+.encounter-heading .briefing{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;gap:4px 7px;margin:0 auto;max-width:62ch;font-size:11px;line-height:1.6;color:#95a08d}
+.encounter-heading .briefing svg{color:var(--gold);align-self:center}
+.encounter-heading .briefing strong{font-weight:600;color:#cdd6bd;letter-spacing:.3px}
+.encounter-heading .briefing>span{width:100%;color:#7d8a76;font-style:italic}
+.bonus-label{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--gold)}
+.bonus-label span{margin-left:auto;font-size:9px;color:#a4ae9a;font-variant-numeric:tabular-nums}
+.inspect .inspect-ability{font-size:11px;line-height:1.55;color:var(--gold);margin:3px 0 0}
+.journal>div:last-child>span.latest-entry{background:#c5d3b714;color:#dde5cf;box-shadow:inset 0 0 0 1px #c5d3b733}
+.journal>div:last-child>span.latest-entry b{font-size:8px;letter-spacing:1.2px;font-weight:600;color:var(--gold);margin-right:6px}
+@media(max-width:720px){.encounter-heading .briefing{font-size:10px;padding:0 10px}}

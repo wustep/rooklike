@@ -52,6 +52,6 @@ test('a remaining Takeback can rescue the last turn after checkmate',async({page
  test('an unsafe saved board is repaired before any input or AI move',async({page})=>{
   const run={...newRun('wanderer',42),initialFen:'6k1/8/8/8/4r3/8/8/4K3 w - - 0 1'};
   await seed(page,run);await expect(page.locator('.king-check')).toHaveCount(0);
-  await page.getByRole('button',{name:/Move journal/}).click();await expect(page.locator('.journal')).toContainText('unsafe saved deployment');
+  await page.getByRole('button',{name:/Move journal/}).click();await expect(page.locator('.journal .latest-entry')).toContainText('unsafe saved deployment');
   await page.locator('[data-square="e1"]').click();await expect(page.locator('[data-square="g8"]')).not.toHaveClass(/legal/);
  });

@@ -20,6 +20,11 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await page.setViewportSize({width:1440,height:1000});await page.goto('/');
   await expect(page.getByRole('dialog',{name:'Welcome to Rooklike'})).toBeVisible();await page.getByRole('button',{name:'Begin your journey'}).click();
   await expect(page.locator('.square')).toHaveCount(64);
+  await expect(page.locator('.briefing')).toContainText('Briar Sentinel');
+  await expect(page.locator('.briefing')).toContainText('Moves like a rook. Capture it to open the gate.');
+  await expect(page.locator('.bonus-label')).toContainText('Turn 1 · target 12 · +12');
+  await page.locator('[data-square="d5"]').click();await expect(page.locator('.inspect-ability')).toContainText('Moves like a rook');
+  await page.keyboard.press('Escape');
   expect(await page.locator('.board-frame').evaluate(el=>getComputedStyle(el).transform)).toBe('none');
   expect(await page.locator('.board-scene').evaluate(el=>getComputedStyle(el).perspective)).toBe('none');
   if(process.env.UPDATE_SHOTS)await page.screenshot({path:'artifacts/desktop.png',fullPage:true});
