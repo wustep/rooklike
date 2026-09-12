@@ -23,6 +23,12 @@ test('a relic choice, roster change and dangerous road persist and deploy on mob
   const run:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));
   expect(run.coins).toBe(51);expect(run.charges).toBe(2);expect(run.army.filter(u=>u.type==='n')).toHaveLength(2);expect(run.relics).toContain('spurs');
 });
+test('a relic that pays during battle announces itself on screen',async({page})=>{
+  const run={...newRun(),relics:['spurs' as const],initialFen:'6k1/8/8/4b3/8/3N4/8/4K3 w - - 0 1',elite:'e5' as const,positions:{d3:'knight',e1:'king'},army:[{id:'knight',type:'n' as const},{id:'king',type:'k' as const}]};
+  await seed(page,run);await page.locator('[data-square="d3"]').click();await page.locator('[data-square="e5"]').click();
+  await expect(page.locator('.toast')).toHaveText('Forked Spurs · +4.');
+  await expect(page.locator('[role=status]').last()).toHaveText('Forked Spurs · +4.');
+});
 test('enemy inspection traces attacks and changes the position read',async({page})=>{
   await seed(page,newRun());await page.locator('[data-square="d5"]').click();
   await expect(page.locator('[data-square="d4"]')).toHaveClass(/enemy-reach/);

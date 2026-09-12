@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, drawReason, materialSwing, rememberTurn, loadHistory, saveHistory, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, drawReason, materialSwing, effectEntries, rememberTurn, loadHistory, saveHistory, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -34,6 +34,14 @@ describe('Chess legality and campaign integration',()=>{
   });
   it('tracks a moving captain and applies the rider theft only on its capture',()=>{
     let run=position('7k/8/8/4n3/8/3P4/8/R3K3 b - - 0 1','e5');run.stage=1;run=playMove(run,'Nxd3+');expect(run.elite).toBe('d3');expect(run.coins).toBe(10);expect(run.losses).toBe(1);
+  });
+  it('reports only new effect lines, capped at two, and ignores a shrinking log',()=>{
+    const before=['Journey begins. Protect your king.'];
+    expect(effectEntries(before,[...before,'You · Rxa3','Forked Spurs · +4.'])).toEqual(['Forked Spurs · +4.']);
+    expect(effectEntries(before,[...before,'Enemy · Nxd3+','Mire Rider steals 5.','Last Rites · +9.','Crownseed · +20, +1 Takeback.'])).toEqual(['Mire Rider steals 5.','Last Rites · +9.']);
+    expect(effectEntries(before,[...before,'Entered The Glass Causeway.'])).toEqual([]);
+    expect(effectEntries([...before,'You · e4'],before)).toEqual([]);
+    const full=Array.from({length:60},(_,i)=>`You · m${i}`);expect(effectEntries(full,[...full,'You · Rxa3','Forked Spurs · +4.'].slice(-60))).toEqual(['Forked Spurs · +4.']);expect(effectEntries(full,full)).toEqual([]);
   });
   it('lantern capture restores a takeback',()=>{
     let run=position('7k/8/8/8/8/b7/8/R3K3 w - - 0 1','a3');run.stage=2;run=playMove(run,'Rxa3');expect(run.charges).toBe(3);
