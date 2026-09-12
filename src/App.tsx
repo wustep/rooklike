@@ -122,7 +122,7 @@ export default function App() {
     if(candidate){if(candidate.promotion)setPromotion({from:current.from,to:candidate.to});else move(current.from,candidate.to);}
     else if(current.active||current.already){setSelected(null);setHovered(null);}
   }
-  function showHint() {const m=chooseMove(chess,'tactician',run.elite);if(m){setHint({from:m.from,to:m.to,text:hintFor(m)});setSelected(m.from);}}
+  function showHint() {const m=chooseMove(chess,'tactician',run.elite,run.stage,{nodes:2000});if(m){setHint({from:m.from,to:m.to,text:hintFor(m)});setSelected(m.from);}}
   useEffect(()=>{
     function key(e:KeyboardEvent) {
       if((e.target as HTMLElement).matches('select, input, textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
