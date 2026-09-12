@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, formatSeed, parseSeed, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, materialSwing, rememberTurn, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -82,11 +82,50 @@ describe('Chess legality and campaign integration',()=>{
     const undone=takeback({...run,charges:0},history);expect(undone).toBeNull();
     const restored=takeback(run,history)!;expect(restored.run.captures).toBe(0);expect(restored.run.positions.a1).toBe('a1');expect(getChess(restored.run).get('a3')?.color).toBe('b');expect(getChess(restored.run).isCheck()).toBe(false);
   });
+  it('coaches on the ivory plies only, in strict precedence, and falls back to the lesson',()=>{
+    expect(coachLine(['e4','e5','Qh5','Nc6','Bc4','Nf6','Qxf7#'],'LESSON')).toMatch(/mate/);
+    expect(coachLine(['a8=Q+','Kh7','O-O','Kh8','Rf1+'],'LESSON')).toMatch(/last rank/);
+    expect(coachLine(['Nf3','d5','O-O-O','e5','Bb5+'],'LESSON')).toMatch(/castled/);
+    expect(coachLine(['Bb5+','c6','Qh5+','g6','Rd8+','Kg7','Ne4'],'LESSON')).toMatch(/tempo/);
+    expect(coachLine(['e4','d5','Nf3','Qd6+'],'LESSON')).toBe('LESSON');
+  });
+  it('reads material from both sides, including en passant',()=>{
+    const chess=new Chess('4k3/8/8/3pP3/4n3/8/3P4/4K3 w - d6 0 1');
+    chess.move('exd6');chess.move('Nxd2');
+    expect(materialSwing(chess)).toMatchObject({taken:['p'],lost:['p'],delta:0,reading:'even material'});
+    chess.move('Kxd2');
+    expect(materialSwing(chess)).toMatchObject({taken:['p','n'],lost:['p'],delta:3,reading:'+3, a piece up'});
+  });
   it('road codes round trip and reject anything that is not a seed',()=>{
     for(const seed of [0,1,42,1295,Date.now()]) expect(parseSeed(formatSeed(seed))).toBe(seed);
     expect(formatSeed(1295)).toBe('zz');
     expect(parseSeed(' ZZ ')).toBe(1295);
     for(const bad of ['','  ','-5','1.5','zz!','hello world','∞','99999999999999999999']) expect(parseSeed(bad)).toBeNull();
     expect(newRun('wanderer',parseSeed('zz')!).seed).toBe(1295);
+  });
+});
+describe('Hanging squares',()=>{
+  it('marks an attacked ivory piece with no defender',()=>{
+    expect([...hangingSquares(new Chess('4k3/8/2n5/8/3Q4/8/8/4K3 w - - 0 1'))]).toEqual(['d4']);
+  });
+  it('clears once any defender covers the square, king included',()=>{
+    expect(hangingSquares(new Chess('4k3/8/2n5/8/3Q4/2P5/8/4K3 w - - 0 1')).has('d4')).toBe(false);
+    expect(hangingSquares(new Chess('4k3/8/2n5/8/3Q4/4K3/8/8 w - - 0 1')).has('d4')).toBe(false);
+  });
+  it('never marks enemy pieces, empty squares, or the ivory king',()=>{
+    expect(hangingSquares(new Chess('4k3/8/8/8/8/8/8/R1n1K3 w - - 0 1')).size).toBe(0);
+    expect(hangingSquares(new Chess('4k3/8/8/8/8/8/8/r3K3 w - - 0 1')).size).toBe(0);
+  });
+  it('holds the predicate across every encounter deployment',()=>{
+    let run=newRun();
+    for(let i=0;i<ENCOUNTERS.length;i++){
+      const chess=new Chess(makeBattle(run.army,i).fen);
+      for(const sq of hangingSquares(chess)){
+        const piece=chess.get(sq);
+        expect(piece?.color).toBe('w');expect(piece?.type).not.toBe('k');
+        expect(chess.attackers(sq,'b').length).toBeGreaterThan(0);expect(chess.attackers(sq,'w')).toHaveLength(0);
+      }
+      run=recruit(run,'n');
+    }
   });
 });
