@@ -61,6 +61,21 @@ test('desktop: takeback can rewind several turns in a row',async({page})=>{
   await expect(takeback).toBeDisabled();
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves)).toEqual([]);
 });
+test('desktop: a pasted road code starts that exact road',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.addInitScript(()=>localStorage.setItem('rooklike-welcomed','1'));
+  await page.goto('/');
+  await page.getByRole('button',{name:'New journey',exact:true}).click();
+  const input=page.getByLabel('Enter a road code');
+  await input.fill('not a code!');await page.getByRole('button',{name:'Play this code'}).click();
+  await expect(page.getByRole('dialog',{name:'Start a new journey'})).toBeVisible();
+  await expect(page.getByText('Not a road code.')).toBeVisible();
+  await input.fill('zz');await page.getByRole('button',{name:'Play this code'}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).seed)).toBe(1295);
+  await page.getByRole('link',{name:/Rooklike, start a new journey/}).click();
+  await expect(page.locator('.seed-row code')).toHaveText('zz');
+});
 test('reward persists across reload, recruits deploy, and theme changes',async({page})=>{
   let run=newRun();run.initialFen='7k/8/8/8/8/r7/8/R3K3 w - - 0 1';run.elite='a3';run.positions={a1:'rook',e1:'king'};run.army=[{id:'king',type:'k'},{id:'rook',type:'r'}];
   await page.addInitScript(({run,key})=>{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');
