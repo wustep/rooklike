@@ -69,6 +69,20 @@ test('desktop: takeback can rewind several turns in a row',async({page})=>{
   await expect(takeback).toBeDisabled();
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).moves,SAVE_KEY)).toEqual([]);
 });
+test('desktop: takeback charges survive a reload',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  await page.goto('/');
+  await page.getByRole('button',{name:'Begin your journey'}).click();
+  await page.locator('[data-square="e2"]').click();await page.locator('[data-square="e4"]').click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key)!).moves.length===2,SAVE_KEY);
+  await page.reload();
+  const takeback=page.getByRole('button',{name:/Takeback/});
+  await expect(takeback).toBeEnabled();
+  await takeback.click();
+  await expect(page.locator('[data-square="e2"]')).toHaveAttribute('aria-label',/your Pawn/);
+  await expect(page.locator('.charge-count')).toHaveText('1');
+  expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).moves,SAVE_KEY)).toEqual([]);
+});
 test('desktop: a pasted road code starts that exact road',async({page})=>{
   await page.setViewportSize({width:1440,height:1000});
   await page.addInitScript(()=>localStorage.setItem('rooklike-welcomed','1'));
@@ -104,6 +118,7 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
 test('promotion choice can cause a material draw; final board remains ended',async({page})=>{
   let run=newRun();run.initialFen='7k/P7/8/8/8/8/8/4K3 w - - 0 1';run.elite='h8';run.positions={a7:'pawn1',e1:'king'};run.army=[{id:'king',type:'k'},{id:'pawn1',type:'p'}];
   await page.addInitScript(({run,key})=>{localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');await page.locator('[data-square="a7"]').click();await page.locator('[data-square="a8"]').click();await expect(page.getByRole('dialog',{name:'Choose promotion'})).toBeVisible();await page.getByRole('button',{name:'Knight',exact:true}).click();await expect(page.getByRole('dialog',{name:'Journey ended'})).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Journey ended'})).toContainText('Insufficient material');
   await page.getByRole('button',{name:/Study the final board/}).click();await expect(page.locator('.study-banner')).toContainText('draw');
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).phase,SAVE_KEY)).toBe('draw');
 });

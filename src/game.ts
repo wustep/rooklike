@@ -197,6 +197,13 @@ export function tacticalRead(chess: Chess, square?: Square|null): string {
   if(targets.length>=2)return `${NAMES[piece.type]} on ${square} forks ${targets.map(p=>`${NAMES[p!.type].toLowerCase()} on ${p!.square}`).join(' and ')}.`;
   return `${NAMES[piece.type]} on ${square}. ${RULES[piece.type]}`;
 }
+export function drawReason(chess: Chess):{reason:string;lesson:string} {
+  if(chess.isStalemate())return {reason:'Stalemate: the enemy king had no legal move and was not in check.',lesson:'Leave the losing king air — mate needs a square to take away, not every square.'};
+  if(chess.isThreefoldRepetition())return {reason:'Repetition: the same position stood on the board three times.',lesson:'Repeating is a truce. Change the plan before the third time.'};
+  if(chess.isDrawByFiftyMoves())return {reason:'Fifty moves passed with no pawn move and no capture.',lesson:'Push a pawn or trade something. Progress has to be visible on the board.'};
+  if(chess.isInsufficientMaterial())return {reason:'Insufficient material: neither side has enough left to mate.',lesson:'Keep a pawn or a second piece. Mate needs force, not just a king.'};
+  return {reason:'The position is drawn.',lesson:'A draw ends the journey. Play for the win while the pieces are still on the board.'};
+}
 export function hangingSquares(chess: Chess):Set<Square> {
   const squares=new Set<Square>();
   for(const piece of chess.board().flat()){
@@ -222,6 +229,17 @@ export function materialSwing(chess: Chess):{taken:PieceSymbol[];lost:PieceSymbo
   return {taken,lost,delta,reading:delta===0?'even material':`${delta>0?'+':'−'}${size}, ${size>=9?'a queen':size>=5?'a rook':size>=3?'a piece':'a pawn'} ${delta>0?'up':'down'}`};
 }
 export const SAVE_KEY='rooklike-run-v1';
+export const HISTORY_KEY='rooklike-history-v1';
+export const HISTORY_CAP=12;
+export function loadHistory(run:Run):Run[] {
+  try {
+    const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||'null');
+    const last=Array.isArray(saved)?saved.at(-1):null;
+    if(last&&last.seed===run.seed&&last.stage===run.stage&&Array.isArray(last.moves)&&last.moves.length<run.moves.length)return saved as Run[];
+  }catch {/* Invalid or unavailable storage starts with no takebacks. */}
+  return [];
+}
+export function saveHistory(history:Run[]) {localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-HISTORY_CAP)));}
 export function loadRun():Run {
   try {
     const raw=localStorage.getItem(SAVE_KEY);
