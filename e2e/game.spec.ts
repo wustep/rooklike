@@ -36,7 +36,9 @@ test('desktop: onboarding, legal moves, enemy reply, takeback, keyboard, save an
   await page.locator('[data-square="e2"]').focus();await page.keyboard.press('Enter');await page.keyboard.press('ArrowUp');await page.keyboard.press('Enter');
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!).moves.length===2);
   const saved=await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'));await page.reload();expect(await page.evaluate(()=>localStorage.getItem('rooklike-run-v1'))).toBe(saved);
-  await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog',{name:'How to play'})).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button',{name:'How to play',exact:true}).click();await expect(page.getByRole('dialog',{name:'How to play'})).toBeVisible();
+  await page.getByText('Field guide: how the pieces move').click();await expect(page.getByText('Two steps, then one sideways. Knights jump.')).toBeVisible();
+  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
