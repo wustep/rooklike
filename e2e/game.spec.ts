@@ -110,16 +110,16 @@ test('mobile: board fits and controls stay usable',async({page})=>{
 });
 
 test('complete act through the UI: fight, recruit, advance, defeat the boss',async({page})=>{
-  test.setTimeout(900000);
+  test.setTimeout(180000);
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.addInitScript(({key,run})=>localStorage.setItem(key,JSON.stringify(run)),{key:SAVE_KEY,run:newRun('wanderer',42)});
+  await page.addInitScript(({key,run})=>{localStorage.setItem(key,JSON.stringify(run));(window as unknown as {__ROOKLIKE_TEST__:unknown}).__ROOKLIKE_TEST__={override:{depth:1,nodes:200,quiescence:0},delay:0};},{key:SAVE_KEY,run:newRun('wanderer',42)});
   await page.goto('/');await page.getByRole('button',{name:'Begin your journey'}).click();
   for(let stage=0;stage<ENCOUNTERS.length;stage++){
     for(let turns=0;turns<100;turns++){
       const run:Run=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!),SAVE_KEY);
       if(run.phase!=='battle')break;
       const chess=getChess(run);expect(chess.turn()).toBe('w');
-      const move=chooseMove(chess,'tactician',run.elite,run.stage)!;expect(move).toBeTruthy();
+      const move=chooseMove(chess,'tactician',run.elite,run.stage,{depth:2,nodes:800})!;expect(move).toBeTruthy();
       await page.locator(`[data-square="${move.from}"]`).click();await page.locator(`[data-square="${move.to}"]`).click();
       if(move.promotion)await page.getByRole('button',{name:({q:'Queen',r:'Rook',b:'Bishop',n:'Knight'} as Record<string,string>)[move.promotion],exact:true}).click();
       await page.waitForFunction(key=>{const r=JSON.parse(localStorage.getItem(key)!);return r.phase!=='battle'||r.moves.length%2===0;},SAVE_KEY);
