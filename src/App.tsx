@@ -2,11 +2,13 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import type { PieceSymbol, Square } from 'chess.js';
 import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coins, Crown, Eye, EyeOff, Flag, Gem, Heart, RotateCcw, Shield, Skull, Sparkles, Swords, Volume2, VolumeX, X } from 'lucide-react';
 import { legalMoves } from './rules';
+import type { SearchProfile } from './engine';
 import { Piece } from './Piece';
 import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, rememberTurn, takeback, DIFFICULTY_LABELS, formatSeed, parseSeed, type Run, type Difficulty } from './game';
 
 function sound(capture=false) {try {const ctx=new AudioContext(); const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.setValueAtTime(capture?260:440,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(capture?90:220,ctx.currentTime+.13);gain.gain.setValueAtTime(.06,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.start();osc.stop(ctx.currentTime+.18);osc.onended=()=>void ctx.close();}catch{/* Audio is optional. */}}
 const FILES='abcdefgh';
+declare global {interface Window {__ROOKLIKE_TEST__?:{override?:Partial<SearchProfile>;delay?:number}} interface ImportMeta {readonly env:{readonly DEV:boolean}}}
 export default function App() {
   const [run,setRun]=useState<Run>(loadRun);
   const [selected,setSelected]=useState<Square|null>(null);
@@ -33,6 +35,8 @@ export default function App() {
   const mutedRef=useRef(muted);mutedRef.current=muted;
   const dragRef=useRef(drag);dragRef.current=drag;
   const skipClick=useRef(false);
+  const workerRef=useRef<Worker|null>(null);
+  const requestId=useRef(0);
   const chess=useMemo(()=>getChess(run),[run]);
   const encounter=getEncounter(run);
   const act=ACTS[Math.floor(run.stage/4)];
@@ -55,13 +59,18 @@ export default function App() {
   const announcement=lastMove?`${lastMove.color==='w'?'Your':'Enemy'} ${NAMES[lastMove.piece].toLowerCase()} ${lastMove.captured?`takes ${NAMES[lastMove.captured].toLowerCase()} on ${lastMove.to}`:`to ${lastMove.to}`}.${lastMove.promotion?` Promotes to ${NAMES[lastMove.promotion].toLowerCase()}.`:''}${chess.isCheckmate()?' Checkmate.':chess.isCheck()?chess.turn()==='w'?' You are in check.':' Enemy king is in check.':''}`:'';
 
   useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(run));setSaveError(false);}catch{setSaveError(true);}},[run]);
+  useEffect(()=>()=>{workerRef.current?.terminate();workerRef.current=null;},[]);
   useEffect(()=>{
     if(!thinking||intro||help||restart) return;
-    const worker=new Worker(new URL('./ai.worker.ts',import.meta.url),{type:'module'});
-    worker.onmessage=(e:MessageEvent<string|null>)=>{if(e.data){if(!mutedRef.current)sound(e.data.includes('x'));setRun(current=>current===run?playMove(current,e.data!):current);}};
-    worker.onerror=()=>{setNotice('Enemy paused. Retrying.'); const move=chooseMove(getChess(run),'wanderer',run.elite,run.stage);if(move)setRun(current=>current===run?playMove(current,move.san):current);};
-    const timer=setTimeout(()=>worker.postMessage(run),550);
-    return()=>{clearTimeout(timer);worker.terminate();};
+    const hook=import.meta.env.DEV?window.__ROOKLIKE_TEST__:undefined;
+    const fallback=()=>{setNotice('Enemy paused. Retrying.'); const move=chooseMove(getChess(run),'wanderer',run.elite,run.stage,hook?.override);if(move)setRun(current=>current===run?playMove(current,move.san):current);};
+    const id=++requestId.current;
+    let worker=workerRef.current;
+    if(!worker){worker=new Worker(new URL('./ai.worker.ts',import.meta.url),{type:'module'});workerRef.current=worker;}
+    worker.onmessage=(e:MessageEvent<{id:number;san:string|null}>)=>{if(e.data.id!==requestId.current)return;const san=e.data.san;if(!san){fallback();return;}if(!mutedRef.current)sound(san.includes('x'));setRun(current=>current===run?playMove(current,san):current);};
+    worker.onerror=(e:ErrorEvent)=>{console.error('AI worker failed',e.message,e.filename,e.lineno);workerRef.current?.terminate();workerRef.current=null;fallback();};
+    const timer=setTimeout(()=>workerRef.current?.postMessage({id,run,override:hook?.override}),hook?.delay??550);
+    return()=>clearTimeout(timer);
   },[thinking,run,intro,help,restart]);
   useEffect(()=>{if(notice){const t=setTimeout(()=>setNotice(''),4000);return()=>clearTimeout(t);}},[notice]);
 
