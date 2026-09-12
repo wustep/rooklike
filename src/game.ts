@@ -197,6 +197,14 @@ export function tacticalRead(chess: Chess, square?: Square|null): string {
   if(targets.length>=2)return `${NAMES[piece.type]} on ${square} forks ${targets.map(p=>`${NAMES[p!.type].toLowerCase()} on ${p!.square}`).join(' and ')}.`;
   return `${NAMES[piece.type]} on ${square}. ${RULES[piece.type]}`;
 }
+export function hangingSquares(chess: Chess):Set<Square> {
+  const squares=new Set<Square>();
+  for(const piece of chess.board().flat()){
+    if(!piece||piece.color!=='w'||piece.type==='k')continue;
+    if(chess.attackers(piece.square,'b').length&&chess.attackers(piece.square,'w').length===0)squares.add(piece.square);
+  }
+  return squares;
+}
 export function hintFor(move:Move):string {if(move.san.includes('#'))return 'Checkmate.';if(move.captured)return `Take the ${NAMES[move.captured].toLowerCase()}. Is your piece safe after?`;if(move.san.includes('+'))return 'Check. They must answer.';if(move.isKingsideCastle()||move.isQueensideCastle())return 'Castle: shelter the king, connect the rooks.';if(move.piece==='n'||move.piece==='b')return 'Develop toward the center.';return 'Improve the position. Keep the king safe.';}
 export function coachLine(moves:string[], lesson:string):string {
   const ivory=moves.filter((_,i)=>i%2===0);

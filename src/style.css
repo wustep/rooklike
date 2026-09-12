@@ -127,3 +127,4 @@
 .material strong.behind{color:#d99a8f}
 .reward-modal .coach{display:flex;align-items:flex-start;gap:7px;margin:9px 0 0;padding:9px 11px;border-radius:9px;background:#c5d3b70f;box-shadow:inset 0 0 0 1px #c5d3b724;font-size:11.5px;line-height:1.6;font-style:italic;color:#cdd6bd;text-align:left}
 .reward-modal .coach svg{flex:none;margin-top:3px;color:var(--gold)}
+.threat-dot.hanging{width:9px;height:9px;bottom:4px;background:#e0563f;box-shadow:0 0 0 2px #ffceb866,0 0 6px #e0563f88}
