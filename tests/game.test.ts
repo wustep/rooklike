@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, rememberTurn, takeback, formatSeed, parseSeed, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -81,5 +81,12 @@ describe('Chess legality and campaign integration',()=>{
     const history=rememberTurn([],run);run=playMove(run,'Rxa3');expect(run.captures).toBe(1);
     const undone=takeback({...run,charges:0},history);expect(undone).toBeNull();
     const restored=takeback(run,history)!;expect(restored.run.captures).toBe(0);expect(restored.run.positions.a1).toBe('a1');expect(getChess(restored.run).get('a3')?.color).toBe('b');expect(getChess(restored.run).isCheck()).toBe(false);
+  });
+  it('road codes round trip and reject anything that is not a seed',()=>{
+    for(const seed of [0,1,42,1295,Date.now()]) expect(parseSeed(formatSeed(seed))).toBe(seed);
+    expect(formatSeed(1295)).toBe('zz');
+    expect(parseSeed(' ZZ ')).toBe(1295);
+    for(const bad of ['','  ','-5','1.5','zz!','hello world','∞','99999999999999999999']) expect(parseSeed(bad)).toBeNull();
+    expect(newRun('wanderer',parseSeed('zz')!).seed).toBe(1295);
   });
 });

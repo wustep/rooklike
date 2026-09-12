@@ -32,6 +32,8 @@ export const ACTS = [
   {name:'The Fractured Court', numeral:'II', description:'Build a plan. So will they.'},
   {name:'The Crown War', numeral:'III', description:'Every open line threatens the king.'},
 ];
+export function formatSeed(seed:number):string {return Math.abs(Math.trunc(seed)).toString(36);}
+export function parseSeed(text:string):number|null {const code=text.trim().toLowerCase();if(!/^[0-9a-z]{1,10}$/.test(code))return null;const seed=parseInt(code,36);return Number.isSafeInteger(seed)&&seed>=0?seed:null;}
 export function seeded(seed:number, salt:number):number {let x=(seed^Math.imul(salt+1,0x9e3779b9))>>>0;x=Math.imul(x^(x>>>16),0x21f0aaad);x=Math.imul(x^(x>>>15),0x735a2d97);return (x^(x>>>15))>>>0;}
 const VARIANTS: Record<number,{name:string;enemy:string;theme?:string;place?:string;type?:PieceSymbol;description:string;lesson?:string}> = {
   3:{name:'The Rime Stalker',enemy:'Rime Stalker',type:'n',description:'The ice is still. The knight is not.',lesson:'Knights jump pawn walls. Watch for a fork on king and defender.'},
