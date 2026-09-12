@@ -229,6 +229,17 @@ export function materialSwing(chess: Chess):{taken:PieceSymbol[];lost:PieceSymbo
   return {taken,lost,delta,reading:delta===0?'even material':`${delta>0?'+':'−'}${size}, ${size>=9?'a queen':size>=5?'a rook':size>=3?'a piece':'a pawn'} ${delta>0?'up':'down'}`};
 }
 export const SAVE_KEY='rooklike-run-v1';
+export const HISTORY_KEY='rooklike-history-v1';
+export const HISTORY_CAP=12;
+export function loadHistory(run:Run):Run[] {
+  try {
+    const saved=JSON.parse(localStorage.getItem(HISTORY_KEY)||'null');
+    const last=Array.isArray(saved)?saved.at(-1):null;
+    if(last&&last.seed===run.seed&&last.stage===run.stage&&Array.isArray(last.moves)&&last.moves.length<run.moves.length)return saved as Run[];
+  }catch {/* Invalid or unavailable storage starts with no takebacks. */}
+  return [];
+}
+export function saveHistory(history:Run[]) {localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(-HISTORY_CAP)));}
 export function loadRun():Run {
   try {
     const raw=localStorage.getItem(SAVE_KEY);

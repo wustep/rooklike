@@ -4,7 +4,7 @@ import { ArrowRight, ArrowUpRight, BookOpen, Check, ChevronDown, CircleHelp, Coi
 import { legalMoves } from './rules';
 import type { SearchProfile } from './engine';
 import { Piece } from './Piece';
-import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, drawReason, hangingSquares, coachLine, materialSwing, rememberTurn, takeback, DIFFICULTY_LABELS, formatSeed, parseSeed, type Run, type Difficulty } from './game';
+import { ENCOUNTERS, ACTS, encounterFor, getEncounter, shopStock, claimProvision, NAMES, VALUES, RULES, RELICS, SAVE_KEY, loadRun, loadHistory, saveHistory, getChess, newRun, playMove, nextBattle, recruit, sendHome, takeRelic, chooseMove, hintFor, rewardRelics, bonusState, armySynergies, tacticalRead, drawReason, hangingSquares, coachLine, materialSwing, rememberTurn, takeback, DIFFICULTY_LABELS, formatSeed, parseSeed, type Run, type Difficulty } from './game';
 
 function sound(capture=false) {try {const ctx=new AudioContext(); const osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.type='sine';osc.frequency.setValueAtTime(capture?260:440,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(capture?90:220,ctx.currentTime+.13);gain.gain.setValueAtTime(.06,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);osc.start();osc.stop(ctx.currentTime+.18);osc.onended=()=>void ctx.close();}catch{/* Audio is optional. */}}
 const FILES='abcdefgh';
@@ -20,7 +20,7 @@ export default function App() {
   const [muted,setMuted]=useState(true);
   const [hint,setHint]=useState<{from:Square;to:Square;text:string}|null>(null);
   const [promotion,setPromotion]=useState<{from:Square;to:Square}|null>(null);
-  const [history,setHistory]=useState<Run[]>([]);
+  const [history,setHistory]=useState<Run[]>(()=>loadHistory(run));
   const rewardChosen=run.rewardClaimed;
   const [studying,setStudying]=useState(false);
   const [notice,setNotice]=useState('');
@@ -62,7 +62,7 @@ export default function App() {
   const checkers=useMemo(()=>checkedKing?chess.attackers(checkedKing,chess.turn()==='w'?'b':'w'):[],[chess,checkedKing]);
   const announcement=lastMove?`${lastMove.color==='w'?'Your':'Enemy'} ${NAMES[lastMove.piece].toLowerCase()} ${lastMove.captured?`takes ${NAMES[lastMove.captured].toLowerCase()} on ${lastMove.to}`:`to ${lastMove.to}`}.${lastMove.promotion?` Promotes to ${NAMES[lastMove.promotion].toLowerCase()}.`:''}${chess.isCheckmate()?' Checkmate.':chess.isCheck()?chess.turn()==='w'?' You are in check.':' Enemy king is in check.':chess.turn()==='w'?' Your move.':''}`:'';
 
-  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(run));setSaveError(false);}catch{setSaveError(true);}},[run]);
+  useEffect(()=>{try{localStorage.setItem(SAVE_KEY,JSON.stringify(run));saveHistory(history);setSaveError(false);}catch{setSaveError(true);}},[run,history]);
   useEffect(()=>()=>{workerRef.current?.terminate();workerRef.current=null;},[]);
   useEffect(()=>{
     if(!thinking||intro||help||restart) return;
