@@ -18,6 +18,7 @@ test('a relic choice, roster change and dangerous road persist and deploy on mob
   await expect(page.getByRole('button',{name:/The dangerous road/})).toHaveAttribute('aria-pressed','true');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBe(390);
   await page.getByRole('button',{name:/Continue to/}).click();
+  await expect(page.locator('.relic-item')).toContainText('Forked Spurs');
   await expect(page.locator('[data-square="b6"]')).toHaveAttribute('aria-label',/enemy Knight/);
   const run:Run=await page.evaluate(()=>JSON.parse(localStorage.getItem('rooklike-run-v1')!));
   expect(run.coins).toBe(51);expect(run.charges).toBe(2);expect(run.army.filter(u=>u.type==='n')).toHaveLength(2);expect(run.relics).toContain('spurs');
@@ -44,6 +45,7 @@ test('a remaining Takeback can rescue the last turn after checkmate',async({page
  test('an act break grants one provision and shows the next act',async({page})=>{
   await seed(page,{...newRun('wanderer',42),stage:3,phase:'reward',rewardClaimed:true,claimedReward:'hourglass'});
   await expect(page.getByRole('button',{name:/Continue to/})).toBeDisabled();
+  await expect(page.locator('.continue-reason')).toHaveText('Choose a provision first');
   await page.getByRole('button',{name:/A veteran rook/}).click();
   await expect(page.getByRole('button',{name:/A veteran rook/})).toBeDisabled();
   await page.getByRole('button',{name:/Continue to/}).click();

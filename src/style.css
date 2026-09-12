@@ -118,3 +118,12 @@
 .journal>div:last-child>span.latest-entry{background:#c5d3b714;color:#dde5cf;box-shadow:inset 0 0 0 1px #c5d3b733}
 .journal>div:last-child>span.latest-entry b{font-size:8px;letter-spacing:1.2px;font-weight:600;color:var(--gold);margin-right:6px}
 @media(max-width:720px){.encounter-heading .briefing{font-size:10px;padding:0 10px}}
+
+.left-panel .relic-item{gap:6px;padding:3px 8px;border:1px solid #b5ce8e26;border-radius:4px;background:#c3d79908;font-size:10px;line-height:1.2;white-space:nowrap}
+.left-panel .relics{flex-wrap:wrap;gap:6px}
+.next-captain{display:inline-flex;align-items:center;gap:8px;margin-right:9px;vertical-align:middle}
+.next-captain .piece.small{width:20px;height:25px;flex-shrink:0}
+.next-captain strong{font-weight:600;color:#cdd6bd}
+.next-captain>span{font-size:10px;color:var(--gold);letter-spacing:.3px}
+.continue-reason{text-align:center;font-size:10px!important;color:#95a488!important;margin-top:9px!important;padding:0!important}
+.left-panel .abandon{white-space:nowrap}
