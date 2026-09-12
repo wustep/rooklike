@@ -104,6 +104,7 @@ test('reward persists across reload, recruits deploy, and theme changes',async({
 test('promotion choice can cause a material draw; final board remains ended',async({page})=>{
   let run=newRun();run.initialFen='7k/P7/8/8/8/8/8/4K3 w - - 0 1';run.elite='h8';run.positions={a7:'pawn1',e1:'king'};run.army=[{id:'king',type:'k'},{id:'pawn1',type:'p'}];
   await page.addInitScript(({run,key})=>{localStorage.setItem(key,JSON.stringify(run));localStorage.setItem('rooklike-welcomed','1');},{run,key:SAVE_KEY});await page.goto('/');await page.locator('[data-square="a7"]').click();await page.locator('[data-square="a8"]').click();await expect(page.getByRole('dialog',{name:'Choose promotion'})).toBeVisible();await page.getByRole('button',{name:'Knight',exact:true}).click();await expect(page.getByRole('dialog',{name:'Journey ended'})).toBeVisible();
+  await expect(page.getByRole('dialog',{name:'Journey ended'})).toContainText('Insufficient material');
   await page.getByRole('button',{name:/Study the final board/}).click();await expect(page.locator('.study-banner')).toContainText('draw');
   expect(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).phase,SAVE_KEY)).toBe('draw');
 });

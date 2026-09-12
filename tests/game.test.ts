@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Chess, type Square } from 'chess.js';
-import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, materialSwing, rememberTurn, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
+import { newRun, getChess, playMove, makeBattle, nextBattle, recruit, takeRelic, chooseMove, coachLine, drawReason, materialSwing, rememberTurn, takeback, formatSeed, parseSeed, hangingSquares, START_ARMY, ENCOUNTERS, type Run } from '../src/game';
 
 function position(fen:string, elite:Square='a8'):Run {
   const run=newRun();const chess=new Chess(fen);const pieces=chess.board().flat().filter(p=>p?.color==='w');
@@ -43,6 +43,16 @@ describe('Chess legality and campaign integration',()=>{
   });
   it('handles stalemate as a draw, not a checkmate or victory',()=>{
     let run=position('7k/8/5K2/8/6Q1/8/8/8 w - - 0 1','h8');run=playMove(run,'Qg6');expect(run.phase).toBe('draw');
+  });
+  it('names which kind of draw ended the run',()=>{
+    let run=position('7k/8/5K2/8/6Q1/8/8/8 w - - 0 1','h8');run=playMove(run,'Qg6');
+    expect(drawReason(getChess(run)).reason).toMatch(/^Stalemate/);
+    const repeat=new Chess('7k/8/8/8/8/8/8/R6K w - - 0 1');
+    for(let i=0;i<2;i++)for(const san of ['Ra2','Kg8','Ra1','Kh8'])repeat.move(san);
+    expect(repeat.isThreefoldRepetition()).toBe(true);expect(drawReason(repeat).reason).toMatch(/^Repetition/);
+    expect(drawReason(new Chess('7k/8/8/8/8/8/8/R6K w - - 100 80')).reason).toMatch(/^Fifty moves/);
+    expect(drawReason(new Chess('7k/8/8/8/8/8/8/7K w - - 0 1')).reason).toMatch(/^Insufficient material/);
+    expect(drawReason(new Chess()).lesson).toContain('Play for the win');
   });
   it('persists recruited units, losses, relics, and income across stages',()=>{
     let run=position('7k/8/8/8/8/r7/8/R3K3 w - - 0 1','a3');run=takeRelic(run,'purse');run=playMove(run,'Rxa3');expect(run.earned).toBe(57);run=recruit(run,'n',25);const count=run.army.length;run=nextBattle({...run,rewardClaimed:true});expect(run.army).toHaveLength(count);expect(run.relics).toContain('purse');expect(run.moves).toEqual([]);expect(run.elite).toBe(ENCOUNTERS[1].target);
